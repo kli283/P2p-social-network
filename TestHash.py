@@ -13,7 +13,11 @@ password = raw_input("Enter password: ")
 
 userData = {'username': username, 'password': encrypt_string(username, password), 'location': '2', 'ip': '172.23.128.162', 'port': '10001'}
 r = requests.get('http://cs302.pythonanywhere.com/report', params=userData)
+code = r.text[0:1]
+
 print(r.url)
+print(r.text)
+print(code)
 #r = requests.post()
 # username = "kli283"
 # password = "maximumdescent"

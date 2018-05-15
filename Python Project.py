@@ -73,7 +73,7 @@ class MainApp(object):
     @cherrypy.expose
     def signin(self, username=None, password=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
-        error = self.authoriseUserLogin(username,password)
+        error = self.reportLogin(username,password, '2', '')
         if (error == 0):
             cherrypy.session['username'] = username;
             raise cherrypy.HTTPRedirect('/')
@@ -102,7 +102,8 @@ class MainApp(object):
         userData = {'username': username, 'password': encrypt_string(username, password), location: '2',
                     ip: '172.23.128.162', port: '10001'}
         r = requests.get('http://cs302.pythonanywhere.com/report', params=userData)
-        return r
+        returnCode = r.text[0:1]
+        return returnCode
           
 def runMainApp():
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
