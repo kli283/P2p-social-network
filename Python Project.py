@@ -64,6 +64,7 @@ class MainApp(object):
     def logout(self):
         Page = '<form action="/signout" method="post" enctype="multipart/form-data">'
         Page += cherrypy.session['username'] + " has logged out" + "!<br/>"
+        Page += cherrypy.session['password'] + " is the password" + "!<br/>"
         return Page
 
     @cherrypy.expose
@@ -75,7 +76,6 @@ class MainApp(object):
         return Page
 
     # def showOnline(self):
-
 
     @cherrypy.expose
     def sum(self, a=0, b=0):  # All inputs are strings by default
@@ -95,9 +95,9 @@ class MainApp(object):
             raise cherrypy.HTTPRedirect('/login')
 
     @cherrypy.expose
-    def signout(self, username=None, password=None):
+    def signout(self, username=cherrypy.session['username'], password=cherrypy.session['password']):
         """Logs the current user out, expires their session"""
-        error = self.logoff( cherrypy.session['username'],  cherrypy.session['password'])
+        error = self.logoff(username, password)
         if (error == 0):
             raise cherrypy.HTTPRedirect('/logoff')
         else:
