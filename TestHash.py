@@ -7,18 +7,20 @@ def encrypt_string(user, pw):
     encrypted = hashlib.sha256(hash_string.encode()).hexdigest()
     return encrypted
 
-
-username = raw_input("Enter username: ")
-password = raw_input("Enter password: ")
-
-userData = {'username': username, 'password': encrypt_string(username, password), 'location': '2', 'ip': '172.23.128.162', 'port': '10001'}
-r = requests.get('http://cs302.pythonanywhere.com/report', params=userData)
-code = r.text[0:1]
-
-print(r.url)
-print(r.text)
-print(code)
-#r = requests.post()
+def split_upi(upis):
+    upiList = [x.strip() for x in upis.split(',')]
+    return upiList
+# username = raw_input("Enter username: ")
+# password = raw_input("Enter password: ")
+#
+# userData = {'username': username, 'password': encrypt_string(username, password), 'location': '2', 'ip': '172.23.128.162', 'port': '10001'}
+# r = requests.get('http://cs302.pythonanywhere.com/report', params=userData)
+# code = r.text
+#
+# print(r.url)
+# print(r.text)
+# print(code)
+# #r = requests.post()
 # username = "kli283"
 # password = "maximumdescent"
 
