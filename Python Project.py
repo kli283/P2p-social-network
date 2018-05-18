@@ -47,6 +47,9 @@ class MainApp(object):
             Page += "Here is some bonus text because you've logged in!" + "!<br/>"
             Page += "Click here to <a href='logout'>logout</a>" + "!<br/>"
             Page += "Click here to view list of users <a href='showUsers'>BAM</a>." + "!<br/>"
+            Page += "See who's <a href='showOnline'>ONLINE</a>." + "!<br/>"
+            Page += cherrypy.session['username'] + " is Username" + "!<br/>"
+            Page += cherrypy.session['password'] + " is Password" + "!<br/>"
         except KeyError:  # There is no username
 
             Page += "Click here to <a href='login'>login</a>."
@@ -62,9 +65,14 @@ class MainApp(object):
 
     @cherrypy.expose
     def logout(self):
-        Page = '<form action="/signout" method="post" enctype="multipart/form-data">'
-        Page += cherrypy.session['username'] + " has logged out" + "!<br/>"
-        Page += cherrypy.session['password'] + " is the password" + "!<br/>"
+        Page = '<form action="/signin" method="post" enctype="multipart/form-data">'
+        error = self.logoff(cherrypy.session['username'], cherrypy.session['password'])
+        if (error == 0):
+            # raise cherrypy.HTTPRedirect('/logoff')
+            Page
+            Page += cherrypy.session['username'] + " has logged out" + "!<br/>"
+        else:
+            raise cherrypy.HTTPRedirect('/')
         return Page
 
     @cherrypy.expose
@@ -75,6 +83,13 @@ class MainApp(object):
             Page += upi + "<br/>"
         return Page
 
+    @cherrypy.expose
+    def showOnline(self):
+        userList = self.listOnline(cherrypy.session['username'], cherrypy.session['password'])
+        Page = "Here is a list of people online from COMPSYS302! this is not formatted lol<br/>"
+        for user in userList:
+            Page += user + "<br/>"
+        return Page
     # def showOnline(self):
 
     @cherrypy.expose
@@ -94,14 +109,14 @@ class MainApp(object):
         else:
             raise cherrypy.HTTPRedirect('/login')
 
-    @cherrypy.expose
-    def signout(self, username=cherrypy.session['username'], password=cherrypy.session['password']):
-        """Logs the current user out, expires their session"""
-        error = self.logoff(username, password)
-        if (error == 0):
-            raise cherrypy.HTTPRedirect('/logoff')
-        else:
-            raise cherrypy.HTTPRedirect('/')
+    # @cherrypy.expose
+    # def signout(self, username=cherrypy.session['username'], password=cherrypy.session['password']):
+    #     """Logs the current user out, expires their session"""
+    #     error = self.logoff(username, password)
+    #     if (error == 0):
+    #         raise cherrypy.HTTPRedirect('/logoff')
+    #     else:
+    #         raise cherrypy.HTTPRedirect('/')
             # pass
 
     # def reportLogin(self, username, password, location, ip, port):
@@ -122,7 +137,7 @@ class MainApp(object):
         return returnCode
 
     def logoff(self, username, password):
-        userData = urllib.urlencode({'username': username, 'password': encrypt_string(username, password)})
+        userData = urllib.urlencode({'username': username, 'password': password})
         r = urllib.urlopen('http://cs302.pythonanywhere.com/logoff', userData)
 
         returnCode = int(r.read()[0:1])
@@ -131,6 +146,14 @@ class MainApp(object):
 
     def listUsers(self):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/listUsers')
+
+        userList = split_upi(r.read())
+        print userList
+        return userList
+
+    def listOnline(self, username, password):
+        userData = urllib.urlencode({'username': username, 'password': password})
+        r = urllib.urlopen('http://cs302.pythonanywhere.com/getList', userData)
 
         userList = split_upi(r.read())
         print userList
