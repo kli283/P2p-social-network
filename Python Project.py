@@ -17,9 +17,10 @@ listen_ip = "0.0.0.0"
 listen_port = 10001
 
 import cherrypy
-import hashlib
-import requests
 import urllib
+import sqlite3
+
+connection = sqlite3.connect("UserInfo.db")
 
 
 class MainApp(object):
@@ -90,6 +91,7 @@ class MainApp(object):
         for user in userList:
             Page += user + "<br/>"
         return Page
+
     # def showOnline(self):
 
     @cherrypy.expose
@@ -117,7 +119,7 @@ class MainApp(object):
     #         raise cherrypy.HTTPRedirect('/logoff')
     #     else:
     #         raise cherrypy.HTTPRedirect('/')
-            # pass
+    # pass
 
     # def reportLogin(self, username, password, location, ip, port):
     #     userData = {'username': username, 'password': encrypt_string(username, password), 'location': location,

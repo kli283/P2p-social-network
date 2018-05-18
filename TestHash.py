@@ -1,6 +1,8 @@
 import hashlib
-import requests
+import sqlite3
 
+connection = sqlite3.connect("UserInfo.db")
+cursor = connection.cursor()
 
 def encrypt_string(user, pw):
     hash_string = pw + user
@@ -9,7 +11,11 @@ def encrypt_string(user, pw):
 
 def split_upi(upis):
     upiList = [x.strip() for x in upis.split(',')]
+    for upi in upiList
+        cursor.execute(, upi)
+    #TODO Insert sql query
     return upiList
+
 # username = raw_input("Enter username: ")
 # password = raw_input("Enter password: ")
 #
