@@ -11,6 +11,8 @@
 #            Python  (We use 2.7)
 
 # The address we listen for connections on
+import socket
+
 from TestHash import encrypt_string, split_upi, add_upi_db
 
 listen_ip = "0.0.0.0"
@@ -21,8 +23,6 @@ import urllib
 import sqlite3
 import json
 
-connection = sqlite3.connect("LiChat.db")
-# cursor = connection.cursor()
 
 class MainApp(object):
     # CherryPy Configuration
@@ -59,11 +59,13 @@ class MainApp(object):
 
     @cherrypy.expose
     def login(self):
+
         Page = '<form action="/signin" method="post" enctype="multipart/form-data">'
         Page += 'Username: <input type="text" name="username"/><br/>'
         Page += 'Password: <input type="password" name="password"/>'
         Page += '<input type="submit" value="Login"/></form>'
         return Page
+        # return file("index.html")
 
     @cherrypy.expose
     def logout(self):
@@ -103,8 +105,9 @@ class MainApp(object):
     # LOGGING IN AND OUT
     @cherrypy.expose
     def signin(self, username=None, password=None):
+        local_ip = self.getIp()
         """Check their name and password and send them either to the main page, or back to the main login screen."""
-        error = self.reportLogin(username, password, '2', '172.23.128.162', '10001')
+        error = self.reportLogin(username, password, '2', local_ip, '10001')
         if error == 0:
             cherrypy.session['username'] = username
             cherrypy.session['password'] = encrypt_string(username, password)
@@ -121,6 +124,14 @@ class MainApp(object):
         returnCode = int(r.read()[0:1])
         print returnCode
         return returnCode
+
+    def getIp(self):
+        """Acquires the current ip address"""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]  # get local ip address : Reference "https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib"
+        s.close()
+        return ip
 
     def logoff(self, username, password):
         userData = urllib.urlencode({'username': username, 'password': password})
@@ -146,9 +157,13 @@ class MainApp(object):
 
         userList = split_upi(r.read())
         userList = json.loads(userList).values()
-        
+
         print userList
         return userList
+
+    @cherrypy.expose()
+    def ping(self, username):
+        return "0"
 
 
 def runMainApp():
