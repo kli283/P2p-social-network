@@ -87,15 +87,31 @@ class MainApp(object):
             Page += upi + "<br/>"
         return Page
 
-    @cherrypy.expose
+    # @cherrypy.expose
+    # def showOnline(self):
+    #     userList = self.listOnline(cherrypy.session['username'], cherrypy.session['password'])
+    #     Page = "Here is a list of people online from COMPSYS302! this is not formatted lol<br/>"
+    #     for user in userList:
+    #         Page += user + "<br/>"
+    #     return Page
+
+    @cherrypy.expose()
     def showOnline(self):
-        userList = self.listOnline(cherrypy.session['username'], cherrypy.session['password'])
+        userData = urllib.urlencode({'username': cherrypy.session['username'], 'password': cherrypy.session['password']})
+        r = urllib.urlopen('http://cs302.pythonanywhere.com/getList?&enc=0&json=1', userData)
+
+        userDictionary = r.read()
+        userDictionary = json.loads(userDictionary)
+
         Page = "Here is a list of people online from COMPSYS302! this is not formatted lol<br/>"
-        for user in userList:
-            Page += user + "<br/>"
+        Page += "Number of users online: " + str(len(userDictionary)) + " <br/><br/>"
+        for userNum in userDictionary:
+            json_data = userDictionary[str(userNum)]['username'] + "   " + userDictionary[str(userNum)][
+                'location'] + "   " + userDictionary[str(userNum)]['ip'] + "  "
+            json_data += userDictionary[str(userNum)]['port'] + "   " + userDictionary[str(userNum)]['lastLogin']
+            Page += "User" + str(userNum) + " details: " + str(json_data) + " <br/>"
         return Page
 
-    # def showOnline(self):
 
     @cherrypy.expose
     def sum(self, a=0, b=0):  # All inputs are strings by default
@@ -156,10 +172,16 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/getList', userData)
 
         userList = split_upi(r.read())
-        userList = json.loads(userList).values()
+        userDictionary = json.loads(userList)
 
-        print userList
-        return userList
+        for userNum in userDictionary:
+            json_data = userDictionary[str(userNum)]['username']  + "   " + userDictionary[str(userNum)]['location'] + "   " + userDictionary[str(userNum)]['ip']  + "  "
+            json_data += userDictionary[str(userNum)]['port']  + "   " + userDictionary[str(userNum)]['lastLogin']
+
+        Page += "User" + str(userNum) + " details: " + str(json_data) + " <br/>"
+
+        print userDictionary
+        return userDictionary
 
     @cherrypy.expose()
     def ping(self, username):
