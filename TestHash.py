@@ -1,20 +1,32 @@
 import hashlib
 import sqlite3
 
-connection = sqlite3.connect("UserInfo.db")
-cursor = connection.cursor()
+
+
+
 
 def encrypt_string(user, pw):
     hash_string = pw + user
     encrypted = hashlib.sha256(hash_string.encode()).hexdigest()
     return encrypted
 
+
 def split_upi(upis):
     upiList = [x.strip() for x in upis.split(',')]
-    for upi in upiList
-        cursor.execute(, upi)
-    #TODO Insert sql query
     return upiList
+
+
+
+
+def add_upi_db(userList):
+    # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    for upi in userList:
+        cursor.execute("INSERT INTO UserInfo (UPI) VALUES (?)", (upi,))
+        connection.commit()
+    cursor.close()
+    # connection.close()
 
 # username = raw_input("Enter username: ")
 # password = raw_input("Enter password: ")
@@ -29,7 +41,6 @@ def split_upi(upis):
 # #r = requests.post()
 # username = "kli283"
 # password = "maximumdescent"
-
 
 
 #

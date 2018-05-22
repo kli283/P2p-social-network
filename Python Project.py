@@ -11,7 +11,7 @@
 #            Python  (We use 2.7)
 
 # The address we listen for connections on
-from TestHash import encrypt_string, split_upi
+from TestHash import encrypt_string, split_upi, add_upi_db
 
 listen_ip = "0.0.0.0"
 listen_port = 10001
@@ -19,9 +19,10 @@ listen_port = 10001
 import cherrypy
 import urllib
 import sqlite3
+import json
 
-connection = sqlite3.connect("UserInfo.db")
-
+connection = sqlite3.connect("LiChat.db")
+# cursor = connection.cursor()
 
 class MainApp(object):
     # CherryPy Configuration
@@ -111,23 +112,6 @@ class MainApp(object):
         else:
             raise cherrypy.HTTPRedirect('/login')
 
-    # @cherrypy.expose
-    # def signout(self, username=cherrypy.session['username'], password=cherrypy.session['password']):
-    #     """Logs the current user out, expires their session"""
-    #     error = self.logoff(username, password)
-    #     if (error == 0):
-    #         raise cherrypy.HTTPRedirect('/logoff')
-    #     else:
-    #         raise cherrypy.HTTPRedirect('/')
-    # pass
-
-    # def reportLogin(self, username, password, location, ip, port):
-    #     userData = {'username': username, 'password': encrypt_string(username, password), 'location': location,
-    #                 'ip': ip, 'port': port}
-    #     r = requests.get('http://cs302.pythonanywhere.com/report', params=userData)
-    #     returnCode = int(r.text[0:1])
-    #     print returnCode
-    #     return returnCode
     def reportLogin(self, username, password, location, ip, port):
         userData = urllib.urlencode(
             {'username': username, 'password': encrypt_string(username, password), 'location': location,
@@ -150,6 +134,9 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/listUsers')
 
         userList = split_upi(r.read())
+        # somelist = "kli283"
+
+        add_upi_db(userList)
         print userList
         return userList
 
@@ -158,6 +145,8 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/getList', userData)
 
         userList = split_upi(r.read())
+        userList = json.loads(userList).values()
+        
         print userList
         return userList
 
