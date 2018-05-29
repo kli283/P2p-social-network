@@ -16,16 +16,14 @@ def split_upi(upis):
     return upiList
 
 
-
-
-def add_upi_db(userList):
-    # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
+def get_user_list():
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-    for upi in userList:
-        cursor.execute("INSERT INTO UserInfo (UPI) VALUES (?)", (upi,))
-        connection.commit()
-    cursor.close()
+    cursor.execute("SELECT UPI FROM UserInfo")
+    data = cursor.fetchall()
+    return data
+
+
     # connection.close()
 
 # username = raw_input("Enter username: ")
