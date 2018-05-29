@@ -14,14 +14,26 @@ def add_upi_db(userList):
     cursor.close()
 
 
-def add_online_db(userList):
+# def add_online_db(UPI, location, IP, port, timestamp):
+#     # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
+#     connection = sqlite3.connect("LiChat.db")
+#     cursor = connection.cursor()
+#
+#     tupleData = (location, IP, port, timestamp, UPI)
+#     cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? where UPI == ?", tupleData)
+#     connection.commit()
+#     cursor.close()
+
+
+def add_online_db(userDictionary):
     # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-
-    for upi in userList:
-        cursor.execute("UPDATE UserInfo SET ip = "192.168.0.1" where UPI == "kli283"")
-        connection.commit()
+    userDictionary = userDictionary.values()
+    # tupleData = (location, IP, port, timestamp, UPI)
+    for user in userDictionary:
+        cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? where UPI == ?", (user['location'], user['ip'], user['port'], user['lastLogin'], user['username']))
+    connection.commit()
     cursor.close()
 
 
