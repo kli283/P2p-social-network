@@ -158,7 +158,7 @@ class MainApp(object):
         filename = str(fname.filename)
         content = mimetypes.guess_type(filename, strict=True)  # guess mimetype
         content_type = content[0]  # get mimetype from tuple
-        encding_tpye = content[1]  # zip etc.
+        encoding_tpye = content[1]  # zip etc.
         size = len(file)
         print("size is this!: " + str(size))
         if size > 5000000:

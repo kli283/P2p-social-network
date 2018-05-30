@@ -1,6 +1,5 @@
 import sqlite3
-
-
+import time
 
 
 def add_upi_db(userList):
@@ -32,7 +31,9 @@ def add_online_db(userDictionary):
     userDictionary = userDictionary.values()
     # tupleData = (location, IP, port, timestamp, UPI)
     for user in userDictionary:
-        cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? where UPI == ?", (user['location'], user['ip'], user['port'], user['lastLogin'], user['username']))
+        cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? WHERE UPI == ?", (
+        user['location'], user['ip'], user['port'],
+        time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(user['lastLogin']))), user['username']))
     connection.commit()
     cursor.close()
 
@@ -47,3 +48,18 @@ def add_msg_db(sender, receiver, message, timestamp):
     connection.commit()
     cursor.close()
 
+
+def get_ip(UPI):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT IP FROM UserInfo WHERE UPI = (?)", (UPI,))
+    ip = cursor.fetchone()[0]
+    return ip
+
+
+def get_port(UPI):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT PORT FROM UserInfo WHERE UPI = (?)", (UPI,))
+    port = cursor.fetchone()[0]
+    return port
