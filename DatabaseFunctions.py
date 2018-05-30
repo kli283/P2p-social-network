@@ -30,12 +30,47 @@ def add_online_db(userDictionary):
     cursor = connection.cursor()
     userDictionary = userDictionary.values()
     # tupleData = (location, IP, port, timestamp, UPI)
+
+
     for user in userDictionary:
-        cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? WHERE UPI == ?", (
+        cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ?, isOnline = '1' WHERE UPI == ?", (
         user['location'], user['ip'], user['port'],
         time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(user['lastLogin']))), user['username']))
+    # users = cursor.fetchone()[0]
     connection.commit()
     cursor.close()
+    # return users
+
+
+# def add_online_db(userDictionary):
+#     # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
+#     connection = sqlite3.connect("LiChat.db")
+#     cursor = connection.cursor()
+#     userDictionary = userDictionary.values()
+#     # tupleData = (location, IP, port, timestamp, UPI)
+#     for user in userDictionary:
+#         cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ?, isOnline = '1' WHERE UPI == ?", (
+#         user['location'], user['ip'], user['port'],
+#         time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(user['lastLogin']))), user['username']))
+#     connection.commit()
+#     cursor.close()
+
+
+# def set_online(user):
+#     connection = sqlite3.connect("LiChat.db")
+#     cursor = connection.cursor()
+#     if (user == ):
+#         cursor.execute("UPDATE UserInfo SET isOnline = '1'")
+#     else:
+#         cursor.execute("UPDATE UserInfo SET isOnline = '0'")
+#     connection.commit()
+#     cursor.close()
+#
+def get_online():
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT UPI FROM UserInfo WHERE isOnline = '1'")
 
 
 def add_msg_db(sender, receiver, message, timestamp):
@@ -45,6 +80,15 @@ def add_msg_db(sender, receiver, message, timestamp):
     #     "CREATE TABLE IF NOT EXISTS Messages(Sender TEXT, Receiver TEXT, Message TEXT, Timestamp INTEGER)")
     tupleData = (sender, receiver, message, timestamp)
     cursor.execute("INSERT INTO Messages (Sender, Receiver, Message, Timestamp) VALUES (?,?,?,?)", tupleData)
+    connection.commit()
+    cursor.close()
+
+
+def add_profile(name, position, description, location, picture, timestamp):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    tupleData = (name, position, description, location, picture, timestamp)
+    cursor.execute("INSERT or REPLACE INTO Messages (fullname, position, description, location, picture, lastUpdated) VALUES (?,?,?,?,?,?)", tupleData)
     connection.commit()
     cursor.close()
 
