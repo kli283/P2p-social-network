@@ -832,7 +832,7 @@ class MainApp(object):
 
         # @cherrypy.expose        # threading to report to log in server every
 
-    def reportToServer(self, username, password, signedIn):
+    def  reportToServer(self, username, password, signedIn):
         if (signedIn):  # if user is signed in do threading
             global threadCount
             if threadCount < 4:  # if its the first time the server is loading up

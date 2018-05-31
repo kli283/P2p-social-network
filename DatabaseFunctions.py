@@ -84,14 +84,24 @@ def add_msg_db(sender, receiver, message, timestamp):
     cursor.close()
 
 
-def add_profile(name, position, description, location, picture, timestamp):
+def add_profile(UPI, name, position, description, location, picture, timestamp):
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-    tupleData = (name, position, description, location, picture, timestamp)
-    cursor.execute("INSERT or REPLACE INTO Messages (fullname, position, description, location, picture, lastUpdated) VALUES (?,?,?,?,?,?)", tupleData)
+    tupleData = (UPI, name, position, description, location, picture, timestamp)
+    cursor.execute("INSERT or REPLACE INTO Profiles (UPI, fullname, position, description, location, picture, lastUpdated) VALUES (?,?,?,?,?,?,?)", tupleData)
     connection.commit()
     cursor.close()
 
+
+def get_user_profile(UPI):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM Profiles WHERE UPI = (?)", (UPI,))
+    connection.commit()
+    profile = cursor.fetchall()
+    print profile
+    connection.close()
+    return profile
 
 def get_ip(UPI):
     connection = sqlite3.connect("LiChat.db")
