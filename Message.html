@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{{title}}</title>
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<!--<meta http-equiv="refresh" content="5">-->
+</head>
+<body>
+
+	<div class="online-users">
+		{% for user in onlineUsers %}
+			<button class="chat-message">{{user}}</button>
+		{% endfor %}
+	</div>
+
+	<div class="chatbox">
+		<div class="chatlogs">
+			<!--<p class="chat-message">{{messages[0][3]}}</p>-->
+			{% for msg in messages %}
+				<!--<p class="chat-message">{{user}}</p>-->
+				<!--<p class="chat-message">{{msg[3]}}</p>-->
+				<!--{% for sender in senderList %}-->
+				<!--{% if True %}-->
+					<div class="chat friend">
+						<!--<img class="user-photo" src="{{profilePic}}">-->
+						<p class="chat-message">{{msg[3]}}</p>
+					</div>
+				<!--{% else %}-->
+					<!--<div class="chat self">-->
+						<!--<img class="user-photo" src="{{profilePic}}">-->
+						<!--<p class="chat-message">{{msg[3]}}</p>-->
+					<!--</div>-->
+				<!--{% endif %}-->
+				<!--{% endfor %}-->
+			{% endfor %}
+		</div>
+		<div class="chat-form">
+			<form class="chat-form" action="/sendMessage" method="post" enctype="multipart/form-data">
+			<input type="text" name="message"/><b></b>
+			<input type="text" name="recipient"/>
+			<input type="submit" value="Send"/></form>
+		</div>
+	</div>
+
+
+
+</body>
+</html>

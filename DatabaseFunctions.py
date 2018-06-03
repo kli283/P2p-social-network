@@ -21,7 +21,10 @@ def add_current_user(username, password, location):
 def get_current_user():
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM UserCredentials")
+    try:
+        cursor.execute("SELECT * FROM UserCredentials")
+    except:
+        print("No user in DB")
     userCred = cursor.fetchall()
     connection.commit()
     cursor.close()
@@ -115,7 +118,10 @@ def add_msg_db(sender, receiver, message, timestamp):
     # cursor.execute(
     #     "CREATE TABLE IF NOT EXISTS Messages(Sender TEXT, Receiver TEXT, Message TEXT, Timestamp INTEGER)")
     tupleData = (sender, receiver, message, timestamp)
+    # try:
     cursor.execute("INSERT INTO Messages (Sender, Receiver, Message, Timestamp) VALUES (?,?,?,?)", tupleData)
+    # except:
+    #     pass
     connection.commit()
     cursor.close()
 
@@ -133,6 +139,15 @@ def get_msg(username):
     connection.commit()
     cursor.close()
     return returnMsg
+
+def get_convo(sender, receiver):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM Messages WHERE (Sender = (?) AND Receiver = (?)) OR (Sender = (?) AND Receiver = (?))", (sender, receiver, receiver, sender))
+    connection.commit()
+    msg = cursor.fetchall()
+    print(msg)
+    return msg
 
 
 def add_profile(UPI, name, position, description, location, picture, timestamp):
