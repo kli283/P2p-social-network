@@ -2,47 +2,65 @@
 <html>
 <head>
 	<title>{{title}}</title>
-	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/messageStyle.css">
+
 	<!--<meta http-equiv="refresh" content="5">-->
 </head>
+
 <body>
 
-	<div class="online-users">
+<div class="top-bar">
+	<form class="chat-form" action="/logout" method="post" enctype="multipart/form-data">
+	<a href="/">
+		<img class="logo" src="https://image.ibb.co/cxd0qy/Li_chat.png", alt="Lichat Logo"></a>
+		<input class="chat-message" type="submit" value="Log Out"/></form>
+	</div>
+
+<html>
+<body>
+
+
+	<div id="online" class="online-users">
+		<h1>Online Users</h1>
 		{% for user in onlineUsers %}
-			<button class="chat-message">{{user}}</button>
+		<form id="selectUser" action="/showMessages" method="post" enctype="multipart/form-data">
+			<button name="username" type="submit" value={{onlineUsers[user]['username']}}>{{onlineUsers[user]['username']}}</button>
+		</form>
 		{% endfor %}
 	</div>
 
 	<div class="chatbox">
-		<div class="chatlogs">
-			<!--<p class="chat-message">{{messages[0][3]}}</p>-->
+		<div id = "chatlog" class="chatlogs">
 			{% for msg in messages %}
-				<!--<p class="chat-message">{{user}}</p>-->
-				<!--<p class="chat-message">{{msg[3]}}</p>-->
-				<!--{% for sender in senderList %}-->
-				<!--{% if True %}-->
+				{% if msg[1] == user %}
 					<div class="chat friend">
-						<!--<img class="user-photo" src="{{profilePic}}">-->
+						<img class="user-photo" src="{{otherPic}}">
 						<p class="chat-message">{{msg[3]}}</p>
 					</div>
-				<!--{% else %}-->
-					<!--<div class="chat self">-->
-						<!--<img class="user-photo" src="{{profilePic}}">-->
-						<!--<p class="chat-message">{{msg[3]}}</p>-->
-					<!--</div>-->
-				<!--{% endif %}-->
-				<!--{% endfor %}-->
+				{% else %}
+					<div class="chat self">
+						<img class="user-photo" src="{{profilePic}}">
+						<p class="chat-message">{{msg[3]}}</p>
+					</div>
+				{% endif %}
+
 			{% endfor %}
 		</div>
+		<form action="/sendMessage" method="post" enctype="multipart/form-data">
 		<div class="chat-form">
-			<form class="chat-form" action="/sendMessage" method="post" enctype="multipart/form-data">
-			<input type="text" name="message"/><b></b>
-			<input type="text" name="recipient"/>
-			<input type="submit" value="Send"/></form>
+
+				<input type="text" name="message" autofocus /><b>
+			<!--<input type="text" name="recipient"/>-->
+				<button id="sendButton" name="recipient" type="submit" value={{sender}}>Send</button>
+			</form>
 		</div>
 	</div>
-
-
-
 </body>
+
+</html>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script  src="css/messaging.js"></script>
+</body>
+
+
 </html>

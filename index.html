@@ -2,18 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="css/homeStyle.css">
     <title>My Webpage</title>
 </head>
 <body>
-    <ul id="navigation">
-    {% for item in navigation %}
-        <li><a href="{{ item.href }}">{{ item.caption }}</a></li>
-    {% endfor %}
-    </ul>
+    <div class="wrapper">
+        <div class="logo" >
+		<a href="/"><img class="logo" src="https://image.ibb.co/cxd0qy/Li_chat.png", alt="Lichat Logo"></a>
+        </div>
+        <div class="logout">
+            <form action="/logout" method="post" enctype="multipart/form-data">
+            <input type="submit" value="Log Out"/></form>
+	    </div>
+        <div class="messages">
+            <form action="/showMessages" method="post" enctype="multipart/form-data">
+                 <button name="username" type="submit" value={{user}}>Messages</button>
+            </form>
+            <!--<input type="submit" value="Messages" name="username"/></form>-->
+	    </div>
+        <div class="searchBox">
+            <form action="/requestProfile" method="post" enctype="multipart/form-data">
+            <input type="text" name="userProfile" placeholder="Username"/>
 
-    <h1>My Webpage</h1>
-    {{ a_variable }}
+	    </div>
+            <div class="search">
+            <input type="submit" value="Search Profile"/>
+                </form>
+            </div>
+    </div>
 
-    {# a comment #}
+
+
 </body>
 </html>
