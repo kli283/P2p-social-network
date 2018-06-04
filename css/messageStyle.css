@@ -137,7 +137,7 @@ body {
 
 .chat-form [type=text] {
 	background: #fbfbfb;
-	width: 100%;
+	width: 80%;
 	height: 50px;
 	border: 2px solid #eee;
 	border-radius: 3px;
@@ -204,4 +204,7 @@ body {
 .top-bar .logo {
 	height: 53px;
 	margin-left:50px;
+}
+.attach {
+	height: 37px;
 }
