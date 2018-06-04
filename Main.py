@@ -354,20 +354,21 @@ class MainApp(object):
         currentTime = float(time.time())
         destinationIp = DatabaseFunctions.get_ip(recipient)
         destinationPort = DatabaseFunctions.get_port(recipient)
-        pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-        messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
-                       "stamp": currentTime}
-        messageDict = json.dumps(messageDict)
-        if (pingCode == '0'):
-            url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
-            req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
-            response = urllib2.urlopen(req)
-            if (response.read() == '0'):
-                DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
-                print("-----Message successfully sent-----")
-                raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-                # self.showMessages(recipient)
-        else:
+        try:
+            pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
+            messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
+                           "stamp": currentTime}
+            messageDict = json.dumps(messageDict)
+            if (pingCode == '0'):
+                url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
+                req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
+                response = urllib2.urlopen(req)
+                if (response.read() == '0'):
+                    DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
+                    print("-----Message successfully sent-----")
+                    raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+                    # self.showMessages(recipient)
+        except:
             print("------Message failed to send------")
             raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
 
