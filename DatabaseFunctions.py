@@ -74,7 +74,7 @@ def add_online_db(userDictionary):
         cursor.execute(
             "UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ?, isOnline = '1' WHERE UPI == ?", (
                 user['location'], user['ip'], user['port'],
-                time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(user['lastLogin']))), user['username']))
+                float(user['lastLogin']), user['username']))
     # users = cursor.fetchone()[0]
     connection.commit()
     cursor.close()

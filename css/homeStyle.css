@@ -116,6 +116,41 @@ body {
     font-size: 35px;
     text-align: center;
 }
+
+.profileBox {
+	grid-column: 3/5 ;
+	grid-row: 2;
+	height: 600px;
+	padding: 20px;
+	background: #fbfbfb;
+	border-radius: 10px;
+	overflow-x: hidden;
+	text-align: center;
+	/*overflow-y: scroll;*/
+}
+.profileBox img {
+/*     text-align: center; */
+    height: 150px;
+}
+.editProfile {
+		grid-column: 5 ;
+		grid-row: 2;
+        padding: 20px;
+        height: 600px;
+
+	}
+.editProfile [type=submit]{
+    margin: 572px auto;
+    background: #6ea1ff;
+	padding: 8px 20px;
+	font-size: 25px;
+	color: #fff;
+	border: none;
+	border-radius: 3px;
+	box-shadow: 0 3px 0 #637bff;
+	cursor: pointer;
+}
+
 /* .userBox::-webkit-scrollbar {
 	width: 10px;
 }
