@@ -48,12 +48,10 @@
 		</div>
 		<form action="/sendMessage" method="post" enctype="multipart/form-data">
 		<div class="chat-form">
+            <input type="text" name="message" autofocus /><b>
+			<button id="sendButton" name="recipient" type="submit" value={{sender}}>Send</button></form>
 
-				<input type="text" name="message" autofocus /><b>
-			<!--<input type="text" name="recipient"/>-->
-				<button id="sendButton" name="recipient" type="submit" value={{sender}}>Send</button>
-			</form>
-		</div>
+        </div>
 	</div>
 </body>
 

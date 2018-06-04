@@ -29,6 +29,15 @@
             <input type="submit" value="Search Profile"/>
                 </form>
             </div>
+        <div class="userBox">
+            <p class="usernameList"><b>All Users: </b></p>
+            {% for user in userList %}
+            <p class="usernameList">
+                {{user}}
+            </p>
+
+            {% endfor %}
+        </div>
     </div>
 
 
