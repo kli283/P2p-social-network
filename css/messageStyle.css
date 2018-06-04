@@ -100,14 +100,11 @@ body {
 }
 
 .chat-form button {
-	background: #6ea1ff;
-	padding: 5px 15px;
+	/*background: #6ea1ff;*/
 	font-size: 30px;
 	color: #fff;
 	border: none;
-	margin: 0 10px;
 	border-radius: 3px;
-	box-shadow: 0 3px 0 #637bff;
 	cursor: pointer;
 
 	-webkit-transaction: background .2s ease;
@@ -119,7 +116,7 @@ body {
 	background: #6ea1ff;
 }
 
-.chat-form [type=submit] {
+#sendButton {
 	background: #6ea1ff;
 	padding: 5px 15px;
 	font-size: 30px;
@@ -207,4 +204,11 @@ body {
 }
 .attach {
 	height: 37px;
+}
+#attachButton {
+
+    background: transparent;
+    border: none !important;
+    font-size:0;
+    height: 37px;
 }
