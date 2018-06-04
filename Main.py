@@ -367,6 +367,9 @@ class MainApp(object):
                 print("-----Message successfully sent-----")
                 raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
                 # self.showMessages(recipient)
+        else:
+            print("------Message failed to send------")
+            raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
