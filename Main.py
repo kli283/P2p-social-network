@@ -75,7 +75,7 @@ class MainApp(object):
         DatabaseFunctions.init_current_user()
         template = self.env.get_template('index.html')
         loginTemplate = self.env.get_template('login.html')
-        userList = self.listUsers()
+
         try:
             # Page += "Hello " + cherrypy.session['username'] + "!<br/>"
             # Page += "Here is some bonus text because you've logged in!" + "!<br/>"
@@ -88,7 +88,7 @@ class MainApp(object):
             # Page += "Click here to go to <a href='showProfiles'>profiles</a>." + "!<br/>"
             # Page += "Click here to edit your <a href='editProfile'>profile</a>." + "!<br/><br/>"
             # Page += "Click here to send a <a href='showFile'>file</a>." + "!<br/><br/>"
-
+            userList = self.listUsers()
             userDictionary = self.showOnline()
             onlineUsers = []
             user = DatabaseFunctions.get_current_user()
@@ -107,17 +107,12 @@ class MainApp(object):
             return template.render(user=user, userList=userList, profile=profileDetails, time=updateTime)
 
 
-        except KeyError:  # There is no username
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
             return loginTemplate.render()
 
     @cherrypy.expose
     def login(self):
-        # Page = '<form action="/signin" method="post" enctype="multipart/form-data">'
-        # Page += 'Username: <input type="text" name="username"/><br/>'
-        # Page += 'Password: <input type="password" name="password"/>'
-        # Page += '<input type="submit" value="Login"/></form>'
-        # return Page
-
         return file("login.html")  # urllib.urlopen("index.html").read()
 
     @cherrypy.expose
@@ -131,103 +126,72 @@ class MainApp(object):
             raise cherrypy.HTTPRedirect('/')
 
     @cherrypy.expose
-    def showUsers(self):
-        userList = get_user_list()
-        Page = "Here is a list of UPI from COMPSYS302!<br/>"
-        for upi in userList:
-            Page += upi + "<br/>"
-        return Page
-
-    @cherrypy.expose
     def showMessages(self, username):
-        # f = open("Message.html", "r")
-        # Page = f.read()
-        # f.close()
-        # Page = '<form action="/sendMessage" method="post" enctype="multipart/form-data">'
-        # Page += 'Message: <input type="text" name="message"/><br/>'
-        # Page += 'Receiver: <input type="text" name="recipient"/><br/>'
-        # Page += '<input type="submit" value="Send"/></form>'
-        #
-        # userDictionary = self.showOnline()
-        #
-        # Page += "Here is a list of people online from COMPSYS302!<br/>"
-        # Page += "Number of users online: " + str(len(userDictionary)) + " <br/><br/>"
-        # for userNum in userDictionary:
-        #     Page += userDictionary[str(userNum)]['username'] + " <br/>"
-        #
-        # msgDict = DatabaseFunctions.get_msg("kli283")
-        # for msg in msgDict:
-        #     Page += msg[3] + " <br/>"
-        # return Page
-        user = DatabaseFunctions.get_current_user()
-        user = user[0][1]
-        userDictionary = self.showOnline()
-        userList = []
         try:
-            self.acquireProfile(user)
-        except:
-            print("Profile has some problems")
-        for userNum in userDictionary:
-            # userList.append(userNum[0])
-            userList += userDictionary[str(userNum)]['username']
+            user = DatabaseFunctions.get_current_user()
+            user = user[0][1]
+            userDictionary = self.showOnline()
+            userList = []
+            try:
+                self.acquireProfile(user)
+            except:
+                print("Profile has some problems")
+            for userNum in userDictionary:
+                # userList.append(userNum[0])
+                userList += userDictionary[str(userNum)]['username']
 
-        # print(userList)
+            # print(userList)
 
-        template = self.env.get_template('Message.html')
-        newList = []
-        senderList = []
-        myPic = DatabaseFunctions.get_user_profile(user)
-        friendPic = DatabaseFunctions.get_user_profile(username)
-        convo = DatabaseFunctions.get_convo(user, username)
-        try:
-            friendPic = friendPic[0][6]
-        except:
-            print("No profile pic")
-        try:
-            myPic = myPic[0][6]
-        except:
-            print("No profile pic")
+            template = self.env.get_template('Message.html')
+            newList = []
+            senderList = []
+            myPic = DatabaseFunctions.get_user_profile(user)
+            friendPic = DatabaseFunctions.get_user_profile(username)
+            convo = DatabaseFunctions.get_convo(user, username)
+            try:
+                friendPic = friendPic[0][6]
+            except:
+                print("No profile pic")
+            try:
+                myPic = myPic[0][6]
+            except:
+                print("No profile pic")
 
-        for msg in convo:
-            newList.append(msg[3])
-        for sender in convo:
-            senderList.append(sender[1])
-        recipient = username
-        # print(newList)
-        # print(senderList)
+            for msg in convo:
+                newList.append(msg[3])
+            for sender in convo:
+                senderList.append(sender[1])
+            recipient = username
+            # print(newList)
+            # print(senderList)
 
-        # messageList = messageList[0][3]
-        return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
-                               onlineUsers=userDictionary, user=user, sender=recipient)
+            # messageList = messageList[0][3]
+            return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
+                                   onlineUsers=userDictionary, user=user, sender=recipient)
 
-    @cherrypy.expose
-    def selectUser(self):
-        selectedUser = DatabaseFunctions.get_online()
-        selectedUser = selectedUser[0][0]
-        return selectedUser
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     def showFile(self):
-        Page = '<form action="/sendFile" method="post" enctype="multipart/form-data">'
-        Page += 'Select file: <input type="file" name="fileData" ><br/>'
-        Page += 'Receiver: <input type="text" name="recipient"/><br/>'
-        Page += '<input type="submit" value="Send"/></form>'
+        try:
+            Page = '<form action="/sendFile" method="post" enctype="multipart/form-data">'
+            Page += 'Select file: <input type="file" name="fileData" ><br/>'
+            Page += 'Receiver: <input type="text" name="recipient"/><br/>'
+            Page += '<input type="submit" value="Send"/></form>'
 
-        userDictionary = self.showOnline()
+            userDictionary = self.showOnline()
 
-        Page += "Here is a list of people online from COMPSYS302!<br/>"
-        Page += "Number of users online: " + str(len(userDictionary)) + " <br/><br/>"
-        for userNum in userDictionary:
-            Page += userDictionary[str(userNum)]['username'] + " <br/>"
-        return Page
+            Page += "Here is a list of people online from COMPSYS302!<br/>"
+            Page += "Number of users online: " + str(len(userDictionary)) + " <br/><br/>"
+            for userNum in userDictionary:
+                Page += userDictionary[str(userNum)]['username'] + " <br/>"
+            return Page
 
-    # TODO REMOVE THIS
-    @cherrypy.expose
-    def showProfiles(self):
-        Page = '<form action="/requestProfile" method="post" enctype="multipart/form-data">'
-        Page += 'Type in the profile you would like to see: <input type="text" name="userProfile"/><br/>'
-        Page += '<input type="submit" value="Get profile"/></form>'
-        return Page
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -241,6 +205,7 @@ class MainApp(object):
 
         DatabaseFunctions.add_online_db(userDictionary)
         return userDictionary
+
 
     @cherrypy.expose
     def sum(self, a=0, b=0):  # All inputs are strings by default
@@ -351,26 +316,30 @@ class MainApp(object):
 
     @cherrypy.expose
     def sendMessage(self, recipient, message):
-        currentTime = float(time.time())
-        destinationIp = DatabaseFunctions.get_ip(recipient)
-        destinationPort = DatabaseFunctions.get_port(recipient)
         try:
-            pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-            messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
-                           "stamp": currentTime}
-            messageDict = json.dumps(messageDict)
-            if (pingCode == '0'):
-                url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
-                req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
-                response = urllib2.urlopen(req)
-                if (response.read() == '0'):
-                    DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
-                    print("-----Message successfully sent-----")
-                    raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-                    # self.showMessages(recipient)
-        except:
-            print("------Message failed to send------")
-            raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+            currentTime = float(time.time())
+            destinationIp = DatabaseFunctions.get_ip(recipient)
+            destinationPort = DatabaseFunctions.get_port(recipient)
+            try:
+                pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
+                messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
+                               "stamp": currentTime}
+                messageDict = json.dumps(messageDict)
+                if (pingCode == '0'):
+                    url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
+                    req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
+                    response = urllib2.urlopen(req)
+                    if (response.read() == '0'):
+                        DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
+                        print("-----Message successfully sent-----")
+                        raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+                        # self.showMessages(recipient)
+            except:
+                print("------Message failed to send------")
+                raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -411,113 +380,66 @@ class MainApp(object):
 
     @cherrypy.expose
     def requestProfile(self, userProfile):
-        template = self.env.get_template('Profile.html')
-        error = ""
         try:
-            self.acquireProfile(userProfile)
-        except:
-            error += "user does not exist"
-        userList = self.listUsers()
+            template = self.env.get_template('Profile.html')
+            error = ""
+            try:
+                self.acquireProfile(userProfile)
+            except:
+                error += "user does not exist"
+            userList = self.listUsers()
 
-        try:
-            profile = DatabaseFunctions.get_user_profile(userProfile)
-        except:
-            error += "No profile available"
-            userProfile = DatabaseFunctions.get_current_user()
-            userProfile = userProfile[0][1]
-            profile = DatabaseFunctions.get_user_profile(userProfile)
-        try:
-            updateTime = time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(profile[0][7])))
-        except:
-            updateTime = "Time for last updated is not available"
-        try:
-            return template.render(user=userProfile, userList=userList, profile=profile, time=updateTime, error=error)
-        except:
-            raise cherrypy.HTTPRedirect('/')
-
-
-        # postdata = {'profile_username': userProfile, 'sender': cherrypy.session['username']}
-        # destinationIp = DatabaseFunctions.get_ip(userProfile)
-        # destinationPort = DatabaseFunctions.get_port(userProfile)
-        # pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-        # try:
-        #     if (pingCode == '0'):
-        #         url = 'http://' + destinationIp + ":" + destinationPort + '/getProfile?'
-        #         data = json.dumps(postdata)
-        #         req = urllib2.Request(url, data=data, headers={'content-type': 'application/json'})
-        #         response = urllib2.urlopen(req, timeout=1)
-        #         response = response.read()
-        #         profileDict = json.loads(response)
-        #
-        #         name = profileDict.get('fullname', 'Not Available')
-        #         position = profileDict.get('position', 'Not Available')
-        #         description = profileDict.get('description', 'Not Available')
-        #         location = profileDict.get('location', 'Not Available')
-        #         picture = profileDict.get('picture', 'Not Available')
-        #         timestamp = profileDict.get('lastUpdated', 'Not Available')
-        #         DatabaseFunctions.add_profile(userProfile, name, position, description, location, picture, timestamp)
-        #
-        #         Page = "This is " + userProfile + "'s profile! <br/>"
-        #         Page += '<img src=' + picture + ' alt="Profile picture" style = "max-width: 500px; max-height: 500px">'
-        #         Page += "<br/> " + "Full Name: " + name + " <br/>"
-        #         Page += "Position: " + position + " <br/>"
-        #         Page += "Full Description: " + description + " <br/>"
-        #         Page += "Location: " + location + " <br/>"
-        #         try:
-        #             Page += "Time of last update: " + time.strftime("%d-%m-%Y %I:%M %p",
-        #                                                             time.localtime(timestamp)) + " <br/>"
-        #         except:
-        #             Page += "Time of last update: " + timestamp + " <br/>"
-        #     else:
-        #         profileDict = DatabaseFunctions.get_user_profile(userProfile)
-        #         name = profileDict.get('fullname', 'Not Available')
-        #         position = profileDict.get('position', 'Not Available')
-        #         description = profileDict.get('description', 'Not Available')
-        #         location = profileDict.get('location', 'Not Available')
-        #         picture = profileDict.get('picture', 'Not Available')
-        #         timestamp = profileDict.get('lastUpdated', 'Not Available')
-        #         Page = "This is " + userProfile + "'s profile! <br/>"
-        #         Page += '<img src=' + picture + ' alt="Profile picture" style = "max-width: 500px; max-height: 500px">'
-        #         Page += "<br/> " + "Full Name: " + name + " <br/>"
-        #         Page += "Position: " + position + " <br/>"
-        #         Page += "Full Description: " + description + " <br/>"
-        #         Page += "Location: " + location + " <br/>"
-        #         try:
-        #             Page += "Time of last update: " + time.strftime("%d-%m-%Y %I:%M %p",
-        #                                                             time.localtime(timestamp)) + " <br/>"
-        #         except:
-        #             Page += "Time of last update: " + timestamp + " <br/>"
-        # except:
-        #     Page = "User is not online and profile is not in the database"
-        # return Page
+            try:
+                profile = DatabaseFunctions.get_user_profile(userProfile)
+            except:
+                error += "No profile available"
+                userProfile = DatabaseFunctions.get_current_user()
+                userProfile = userProfile[0][1]
+                profile = DatabaseFunctions.get_user_profile(userProfile)
+            try:
+                updateTime = time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(profile[0][7])))
+            except:
+                updateTime = "Time for last updated is not available"
+            try:
+                return template.render(user=userProfile, userList=userList, profile=profile, time=updateTime, error=error)
+            except:
+                raise cherrypy.HTTPRedirect('/')
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     def editProfile(self):
-        currentUser = DatabaseFunctions.get_current_user()
-        currentUser = currentUser[0][1]
-        profile = DatabaseFunctions.get_user_profile(currentUser)
-        UPI = profile[0][1]
-        name = profile[0][2]
-        position = profile[0][3]
-        description = profile[0][4]
-        location = profile[0][5]
-        picture = profile[0][6]
-        # timestamp = time.time()
+        try:
+            currentUser = DatabaseFunctions.get_current_user()
+            currentUser = currentUser[0][1]
+            profile = DatabaseFunctions.get_user_profile(currentUser)
+            UPI = profile[0][1]
+            name = profile[0][2]
+            position = profile[0][3]
+            description = profile[0][4]
+            location = profile[0][5]
+            picture = profile[0][6]
+            # timestamp = time.time()
 
-        Page = UPI + " this is your profile! <br/>"
-        Page += '<img src=' + picture + ' alt="Kennys profile" style = "max-width: 500px; max-height: 500px">'
-        Page += "<br/> " + "Full Name: " + name + " <br/>"
-        Page += "Position " + position + " <br/>"
-        Page += "Full Description: " + description + " <br/>"
-        Page += "Location: " + location + " <br/>"
-        Page += '<form accept-charset="utf-8" action="/saveProfile" method="post" enctype="multipart/form-data">'
-        Page += 'Full Name: <input type="text" size="100" name = "name" placeholder="Fullname" required="" autofocus="" "/><br/>'
-        Page += 'Position: <input type="text" size="100" name = "position" placeholder="Position" required="" autofocus="""/><br/>'
-        Page += 'Description: <input type="text" size="100" name = "description" placeholder="Description" required="" autofocus="""/><br/>'
-        Page += 'Location: <input type="text" size="100" name = "location" placeholder="Location" required="" autofocus="" "/><br/>'
-        Page += 'Picture: <input type="text" size="100" name = "picture" placeholder="URL of Image" required="" autofocus="" "/><br/>'
-        Page += '<input type="submit" value="Save Changes"/></form>'
-        return Page
+            Page = UPI + " this is your profile! <br/>"
+            Page += '<img src=' + picture + ' alt="Kennys profile" style = "max-width: 500px; max-height: 500px">'
+            Page += "<br/> " + "Full Name: " + name + " <br/>"
+            Page += "Position " + position + " <br/>"
+            Page += "Full Description: " + description + " <br/>"
+            Page += "Location: " + location + " <br/>"
+            Page += '<form accept-charset="utf-8" action="/saveProfile" method="post" enctype="multipart/form-data">'
+            Page += 'Full Name: <input type="text" size="100" name = "name" placeholder="Fullname" required="" autofocus="" "/><br/>'
+            Page += 'Position: <input type="text" size="100" name = "position" placeholder="Position" required="" autofocus="""/><br/>'
+            Page += 'Description: <input type="text" size="100" name = "description" placeholder="Description" required="" autofocus="""/><br/>'
+            Page += 'Location: <input type="text" size="100" name = "location" placeholder="Location" required="" autofocus="" "/><br/>'
+            Page += 'Picture: <input type="text" size="100" name = "picture" placeholder="URL of Image" required="" autofocus="" "/><br/>'
+            Page += '<input type="submit" value="Save Changes"/></form>'
+            return Page
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
+
 
     @cherrypy.expose
     def saveProfile(self, name, position, description, location, picture):
@@ -535,83 +457,66 @@ class MainApp(object):
                                       fileData['filename'],
                                       fileData['stamp'],
                                       fileData['content_type'])
-        self.saveFile(fileData['file'], fileData['filename'])
-        return "0"
+        if self.saveFile(fileData['file'], fileData['filename']):
+            return "0"
+        else:
+            return "12"
 
     @cherrypy.expose
     def saveFile(self, file, fileName):
         fileInput = base64.b64decode(file)
         # print (file)
-        f = open("C:/Users/kenny/Documents/testdl/" + fileName, "wb+")
+        f = open("Downloads/" + fileName, "wb+")
         f.write(fileInput)
         f.close()
+        if os.path.getsize("Downloads/" + fileName) > (5242880):
+            return False
+        return True
 
     @cherrypy.expose
     def sendFile(self, fileData, recipient):
-
-        sender = cherrypy.session['username']
-        destination = recipient
-        file = base64.encodestring(fileData.file.read())
-        filename = str(fileData.filename)
-        content = mimetypes.guess_type(filename, strict=True)
-        content_type = content[0]
-        stamp = float(time.time())
-        destinationIp = DatabaseFunctions.get_ip(recipient)
-        destinationPort = DatabaseFunctions.get_port(recipient)
-
-        fileDict = {'sender': sender, 'destination': str(destination), 'file': file,
-                    'filename': filename, 'content_type': content_type, 'stamp': stamp}
-        fileDict = json.dumps(fileDict)
-        url = 'http://' + destinationIp + ":" + destinationPort + '/receiveFile'
-        req = urllib2.Request(url, data=fileDict, headers={'content-type': 'application/json'})
-        response = urllib2.urlopen(req)
         try:
-            if response.read() == '0':
-                DatabaseFunctions.add_file_db(sender, recipient, filename, stamp, content_type)
-                print("-----File successfully sent-----")
+            sender = cherrypy.session['username']
+            destination = recipient
+            file = base64.encodestring(fileData.file.read())
+            filename = str(fileData.filename)
+            content = mimetypes.guess_type(filename, strict=True)
+            content_type = content[0]
+            stamp = float(time.time())
+            if self.saveFile(file, filename):
+                destinationIp = DatabaseFunctions.get_ip(recipient)
+                destinationPort = DatabaseFunctions.get_port(recipient)
+
+                fileDict = {'sender': sender, 'destination': str(destination), 'file': file,
+                            'filename': filename, 'content_type': content_type, 'stamp': stamp}
+                fileDict = json.dumps(fileDict)
+                url = 'http://' + destinationIp + ":" + destinationPort + '/receiveFile'
+                req = urllib2.Request(url, data=fileDict, headers={'content-type': 'application/json'})
+                response = urllib2.urlopen(req)
+                try:
+                    if response.read() == '0':
+                        DatabaseFunctions.add_file_db(sender, recipient, filename, stamp, content_type)
+                        print("-----File successfully sent-----")
+                        raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+                except:
+                    print("------File failed to send------")
+                    raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+            else:
+                print("-------File exceeds 5Mb-------")
                 raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-        except:
-            print("------File failed to send------")
-            raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+        except KeyError:  # No username
+            print("-----User is not logged on-----")
+            raise cherrypy.HTTPRedirect("/")
+
 
     @cherrypy.expose
     def shutdown(self):
-        print("hiijajs")
         Details = DatabaseFunctions.get_current_user()
         DatabaseFunctions.drop_current()
         self.logoff(Details[0][1], Details[0][2])
         print("===================================")
         print("===SHUTTING DOWN AND LOGGING OFF===")
         print("===================================")
-
-
-# TODO: threading shit
-# backroundLogin = cherrypy.process.plugins.BackgroundTask(30, )
-# backroundLogin.start()
-
-
-# TODO: auto shut down
-# def shutdown():
-#
-#     print "=================================="
-#     print "ENGINE SHUTTING OFF - AUTO LOG-OFF"
-#     print "=================================="
-#     MainApp.logoff(cherrypy.session['username'], cherrypy.session['password'])
-#     print "=================================="
-#     print "SHUT DOWN COMPLETE"
-#     print "=================================="
-#
-#
-# cherrypy.engine.subscribe('stop', shutdown())
-#
-#
-# def logoff(username, password):
-#     userData = urllib.urlencode({'username': username, 'password': password})
-#     r = urllib.urlopen('http://cs302.pythonanywhere.com/logoff', userData)
-#
-#     returnCode = int(r.read()[0:1])
-#     print returnCode
-#     return returnCode
 
 
 def runMainApp():
