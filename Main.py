@@ -447,7 +447,7 @@ class MainApp(object):
         DatabaseFunctions.add_profile(cherrypy.session['username'], name, position, description, location, picture,
                                       timestamp)
         raise cherrypy.HTTPRedirect('/')
-        # raise cherrypy.HTTPRedirect("/editProfile")
+
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -546,10 +546,6 @@ def runMainApp():
 
     # Start the web server
     cherrypy.engine.start()
-
-    # cherrypy.session.cache.clear()
-
-    # cherrypy.engine.subscribe('stop', mainObject.shutdown)
 
     # And stop doing anything else. Let the web server take over.
     cherrypy.engine.block()
