@@ -46,7 +46,8 @@ class MainApp(object):
                   }
     # cherrypy.engine.subscribe('stop', shutdown())
 
-    enableThread = False
+    # enableThread = False
+    enableThread = {}
 
     DatabaseFunctions.init_current_user()
 
@@ -91,8 +92,9 @@ class MainApp(object):
             userList = self.listUsers()
             userDictionary = self.showOnline()
             onlineUsers = []
-            user = DatabaseFunctions.get_current_user()
-            user = user[0][1]
+            # user = DatabaseFunctions.get_current_user()
+            # user = user[0][1]
+            user = cherrypy.session['username']
             try:
                 profileDetails = DatabaseFunctions.get_user_profile(user)
                 try:
@@ -105,7 +107,6 @@ class MainApp(object):
             for userNum in userDictionary:
                 onlineUsers.append(userDictionary[str(userNum)]['username'])
             return template.render(user=user, userList=userList, profile=profileDetails, time=updateTime)
-
 
         except KeyError:  # No username
             print("-----User is not logged on-----")
@@ -126,52 +127,55 @@ class MainApp(object):
             raise cherrypy.HTTPRedirect('/')
 
     @cherrypy.expose
-    def showMessages(self, username):
+    def showMessages(self, username=None):
         try:
-            user = DatabaseFunctions.get_current_user()
-            user = user[0][1]
+            if username is None:
+                username = cherrypy.session['username']
+            # user = DatabaseFunctions.get_current_user()
+            # user = user[0][1]
+            user = cherrypy.session['username']
             userDictionary = self.showOnline()
-            userList = []
-            try:
-                self.acquireProfile(user)
-            except:
-                print("Profile has some problems")
-            for userNum in userDictionary:
-                # userList.append(userNum[0])
-                userList += userDictionary[str(userNum)]['username']
-
-            # print(userList)
-
-            template = self.env.get_template('Message.html')
-            newList = []
-            senderList = []
-            myPic = DatabaseFunctions.get_user_profile(user)
-            friendPic = DatabaseFunctions.get_user_profile(username)
-            convo = DatabaseFunctions.get_convo(user, username)
-            try:
-                friendPic = friendPic[0][6]
-            except:
-                print("No profile pic")
-            try:
-                myPic = myPic[0][6]
-            except:
-                print("No profile pic")
-
-            for msg in convo:
-                newList.append(msg[3])
-            for sender in convo:
-                senderList.append(sender[1])
-            recipient = username
-            # print(newList)
-            # print(senderList)
-
-            # messageList = messageList[0][3]
-            return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
-                                   onlineUsers=userDictionary, user=user, sender=recipient)
-
         except KeyError:  # No username
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
+        userList = []
+        try:
+            self.acquireProfile(user)
+        except:
+            print("Profile has some problems")
+        for userNum in userDictionary:
+            # userList.append(userNum[0])
+            userList += userDictionary[str(userNum)]['username']
+
+        # print(userList)
+
+        template = self.env.get_template('Message.html')
+        newList = []
+        senderList = []
+        myPic = DatabaseFunctions.get_user_profile(user)
+        friendPic = DatabaseFunctions.get_user_profile(username)
+        convo = DatabaseFunctions.get_convo(user, username)
+        try:
+            friendPic = friendPic[0][6]
+        except:
+            print("No profile pic")
+        try:
+            myPic = myPic[0][6]
+        except:
+            print("No profile pic")
+
+        for msg in convo:
+            newList.append(msg[3])
+        for sender in convo:
+            senderList.append(sender[1])
+        recipient = username
+        # print(newList)
+        # print(senderList)
+
+        # messageList = messageList[0][3]
+        return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
+                               onlineUsers=userDictionary, user=user, sender=recipient)
+
 
     @cherrypy.expose
     def showFile(self):
@@ -188,7 +192,6 @@ class MainApp(object):
             for userNum in userDictionary:
                 Page += userDictionary[str(userNum)]['username'] + " <br/>"
             return Page
-
         except KeyError:  # No username
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
@@ -234,7 +237,8 @@ class MainApp(object):
             cherrypy.session['username'] = username
             cherrypy.session['password'] = encrypt_string(username, password)
             thread = threading.Thread(target=self.threadLogin, args=(username, password, location))
-            self.enableThread = True
+            self.enableThread[username] = True
+            # self.enableThread = True
             thread.daemon = True
             thread.start()
             raise cherrypy.HTTPRedirect('/')
@@ -245,7 +249,7 @@ class MainApp(object):
     def threadLogin(self, username, password, location):
         ip = self.getIp()
         port = DatabaseFunctions.get_port(username)
-        while self.enableThread:
+        while self.enableThread[username]:
             self.reportLogin(username, password, location, ip, port)
             print "Reporting Login"
             time.sleep(30)
@@ -274,8 +278,8 @@ class MainApp(object):
     def logoff(self, username, password):
         userData = urllib.urlencode({'username': username, 'password': password})
         r = urllib.urlopen('http://cs302.pythonanywhere.com/logoff', userData)
-        self.enableThread = False
-        DatabaseFunctions.drop_current()
+        self.enableThread[username] = False
+        DatabaseFunctions.drop_current_user(username)
         returnCode = int(r.read()[0:1])
         print returnCode
         return returnCode
@@ -284,7 +288,6 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/listUsers')
 
         userList = split_upi(r.read())
-        # somelist = "kli283"
 
         # DatabaseFunctions.add_upi_db(userList)
         print userList
@@ -412,7 +415,8 @@ class MainApp(object):
     def editProfile(self):
         try:
             currentUser = DatabaseFunctions.get_current_user()
-            currentUser = currentUser[0][1]
+            # currentUser = currentUser[0][1]
+            currentUser = cherrypy.session['username']
             profile = DatabaseFunctions.get_user_profile(currentUser)
             UPI = profile[0][1]
             name = profile[0][2]
@@ -513,7 +517,10 @@ class MainApp(object):
     def shutdown(self):
         Details = DatabaseFunctions.get_current_user()
         DatabaseFunctions.drop_current()
-        self.logoff(Details[0][1], Details[0][2])
+        print(Details)
+        for user in Details:
+            print(user)
+            self.logoff(user[1], user[2])
         print("===================================")
         print("===SHUTTING DOWN AND LOGGING OFF===")
         print("===================================")
@@ -522,7 +529,6 @@ class MainApp(object):
 def runMainApp():
     # Create an instance of MainApp and tell Cherrypy to send all requests under / to it. (ie all of them)
     mainObject = MainApp()
-
     cherrypy.tree.mount(mainObject, "/")
 
     # Tell Cherrypy to listen for connections on the configured address and port.
@@ -538,6 +544,7 @@ def runMainApp():
             'tools.staticdir.dir': './css'
         }
     })
+
 
     print "========================="
     print "University of Auckland"

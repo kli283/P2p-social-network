@@ -24,7 +24,7 @@ def get_current_user():
     try:
         cursor.execute("SELECT * FROM UserCredentials")
     except:
-        print("No user in DB")
+        print("-----No user in DB-----")
     userCred = cursor.fetchall()
     connection.commit()
     cursor.close()
@@ -36,6 +36,16 @@ def drop_current():
     cursor = connection.cursor()
     try:
         cursor.execute("DROP TABLE UserCredentials")
+    except:
+        pass
+    connection.commit()
+    cursor.close()
+
+def drop_current_user(user):
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    try:
+        cursor.execute("DELETE FROM UserCredentials WHERE UPI == ?", user)
     except:
         pass
     connection.commit()

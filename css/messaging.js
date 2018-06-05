@@ -9,7 +9,7 @@ window.onload = setupRefresh;
 function setupRefresh()
 {
 	setInterval(refreshBlock,1000);
-	// setInterval(refreshOnline,15000);
+	setInterval(refreshOnline,1000);
 	// setInterval(scrollSet, 100);
 }
 
@@ -26,13 +26,13 @@ function refreshBlock()
 	});
 }
 
-// function refreshOnline()
-// {
-// 	//$('#chatlog').load("showMessages");
-// 	$.get("showMessages", function(data)
-// 	{
-// 		var replacement = $(data).find('#online');
-// 		$('#online').replaceWith(replacement);
-//
-// 	});
-// }
+function refreshOnline()
+{
+	var user = $("#sendButton").val();
+	$.get("./showMessages",{username: user}, function(data)
+	{
+		var replacement = $(data).find('#online');
+		$('#online').replaceWith(replacement);
+
+	});
+}
