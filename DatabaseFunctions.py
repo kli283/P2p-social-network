@@ -129,7 +129,7 @@ def add_msg_db(sender, receiver, message, timestamp):
     #     "CREATE TABLE IF NOT EXISTS Messages(Sender TEXT, Receiver TEXT, Message TEXT, Timestamp INTEGER)")
     tupleData = (sender, receiver, message, timestamp)
     # try:
-    cursor.execute("INSERT INTO Messages (Sender, Receiver, Message, Timestamp) VALUES (?,?,?,?)", tupleData)
+    cursor.execute("INSERT or IGNORE INTO Messages (Sender, Receiver, Message, Timestamp) VALUES (?,?,?,?)", tupleData)
     # except:
     #     pass
     connection.commit()
@@ -156,7 +156,6 @@ def get_convo(sender, receiver):
     cursor.execute("SELECT * FROM Messages WHERE (Sender = (?) AND Receiver = (?)) OR (Sender = (?) AND Receiver = (?))", (sender, receiver, receiver, sender))
     connection.commit()
     msg = cursor.fetchall()
-    print(msg)
     return msg
 
 
@@ -177,7 +176,6 @@ def get_user_profile(UPI):
     cursor.execute("SELECT * FROM Profiles WHERE UPI = (?)", (UPI,))
     connection.commit()
     profile = cursor.fetchall()
-    print profile
     connection.close()
     return profile
 

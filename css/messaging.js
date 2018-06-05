@@ -9,7 +9,7 @@ window.onload = setupRefresh;
 function setupRefresh()
 {
 	setInterval(refreshBlock,1000);
-	setInterval(refreshOnline,1000);
+	setInterval(refreshOnline,15000);
 	// setInterval(scrollSet, 100);
 }
 

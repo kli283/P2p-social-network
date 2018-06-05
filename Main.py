@@ -94,6 +94,7 @@ class MainApp(object):
             onlineUsers = []
             # user = DatabaseFunctions.get_current_user()
             # user = user[0][1]
+
             user = cherrypy.session['username']
             try:
                 profileDetails = DatabaseFunctions.get_user_profile(user)
@@ -147,8 +148,6 @@ class MainApp(object):
             # userList.append(userNum[0])
             userList += userDictionary[str(userNum)]['username']
 
-        # print(userList)
-
         template = self.env.get_template('Message.html')
         newList = []
         senderList = []
@@ -158,20 +157,17 @@ class MainApp(object):
         try:
             friendPic = friendPic[0][6]
         except:
-            print("No profile pic")
+            print("-----No profile pic-----")
         try:
             myPic = myPic[0][6]
         except:
-            print("No profile pic")
+            print("-----No profile pic-----")
 
         for msg in convo:
             newList.append(msg[3])
         for sender in convo:
             senderList.append(sender[1])
         recipient = username
-        # print(newList)
-        # print(senderList)
-
         # messageList = messageList[0][3]
         return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
                                onlineUsers=userDictionary, user=user, sender=recipient)
@@ -219,8 +215,6 @@ class MainApp(object):
     @cherrypy.expose
     def signin(self, username, password, location):
         # TODO CHECK IF PUBLIC IP DIFFERS FROM LOCAL
-        print(username)
-        # print(location)
         local_ip = self.getIp()
 
         port = '10001'
@@ -228,11 +222,8 @@ class MainApp(object):
         DatabaseFunctions.add_current_user(username, encrypt_string(username, password), location)
 
         Details = DatabaseFunctions.get_current_user()
-        print(Details[0][1], Details[0][2])
-        print(local_ip)
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         error = self.reportLogin(username, password, location, local_ip, port)
-        print(error)
         if error == 0:
             cherrypy.session['username'] = username
             cherrypy.session['password'] = encrypt_string(username, password)
@@ -251,7 +242,7 @@ class MainApp(object):
         port = DatabaseFunctions.get_port(username)
         while self.enableThread[username]:
             self.reportLogin(username, password, location, ip, port)
-            print "Reporting Login"
+            print "-----Reporting Login-----"
             time.sleep(30)
 
     def reportLogin(self, username, password, location, ip, port):
@@ -261,7 +252,6 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/report', userData)
 
         returnCode = int(r.read()[0:1])
-        print returnCode
         return returnCode
 
     def getIp(self):
@@ -281,7 +271,6 @@ class MainApp(object):
         self.enableThread[username] = False
         DatabaseFunctions.drop_current_user(username)
         returnCode = int(r.read()[0:1])
-        print returnCode
         return returnCode
 
     def listUsers(self):
@@ -290,7 +279,6 @@ class MainApp(object):
         userList = split_upi(r.read())
 
         # DatabaseFunctions.add_upi_db(userList)
-        print userList
         return userList
 
     @cherrypy.expose
@@ -309,7 +297,6 @@ class MainApp(object):
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         input_data = cherrypy.request.json
-        print(input_data)
         sender = input_data['sender']
         receiver = input_data['destination']
         message = input_data['message']
@@ -319,6 +306,10 @@ class MainApp(object):
 
     @cherrypy.expose
     def sendMessage(self, recipient, message):
+        """This is the function that sends the message.
+        It would first try to see whether the recipient
+        is online, then send the message.
+        """
         try:
             currentTime = float(time.time())
             destinationIp = DatabaseFunctions.get_ip(recipient)
@@ -328,18 +319,17 @@ class MainApp(object):
                 messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
                                "stamp": currentTime}
                 messageDict = json.dumps(messageDict)
-                if (pingCode == '0'):
-                    url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
-                    req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
-                    response = urllib2.urlopen(req)
-                    if (response.read() == '0'):
-                        DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
-                        print("-----Message successfully sent-----")
-                        raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-                        # self.showMessages(recipient)
             except:
-                print("------Message failed to send------")
+                print("------Message failed to send, unable to ping recipient------")
                 raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+            if (pingCode == '0'):
+                url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
+                req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
+                response = urllib2.urlopen(req)
+                if (response.read() == '0'):
+                    DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
+                    print("-----Message successfully sent-----")
+                    raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
         except KeyError:  # No username
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
@@ -469,7 +459,6 @@ class MainApp(object):
     @cherrypy.expose
     def saveFile(self, file, fileName):
         fileInput = base64.b64decode(file)
-        # print (file)
         f = open("Downloads/" + fileName, "wb+")
         f.write(fileInput)
         f.close()
@@ -517,9 +506,7 @@ class MainApp(object):
     def shutdown(self):
         Details = DatabaseFunctions.get_current_user()
         DatabaseFunctions.drop_current()
-        print(Details)
         for user in Details:
-            print(user)
             self.logoff(user[1], user[2])
         print("===================================")
         print("===SHUTTING DOWN AND LOGGING OFF===")
