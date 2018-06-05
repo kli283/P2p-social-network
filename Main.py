@@ -608,10 +608,10 @@ def runMainApp():
                             })
 
     cherrypy.quickstart(mainObject, config={
-        '/css': {
+        '/static': {
             'tools.staticdir.root': os.path.abspath(os.getcwd()),
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': './css'
+            'tools.staticdir.dir': './static'
         }
     })
 
