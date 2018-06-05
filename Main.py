@@ -21,8 +21,7 @@ import socket
 # sys.setdefaultencoding('utf8')
 import os
 
-from TestHash import encrypt_string, split_upi, get_user_list
-from cherrypy.process.plugins import BackgroundTask
+from BasicFunctions import encrypt_string, split_upi
 
 listen_ip = "0.0.0.0"
 listen_port = 10001
@@ -44,10 +43,10 @@ class MainApp(object):
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on': 'True',
                   }
-    # cherrypy.engine.subscribe('stop', shutdown())
 
-    # enableThread = False
     enableThread = {}
+    rateCounter = {}
+
 
     DatabaseFunctions.init_current_user()
 
@@ -62,6 +61,14 @@ class MainApp(object):
     # The function to logout is called here once the server is stopped.
     def __init__(self):
         cherrypy.engine.subscribe('stop', self.shutdown)
+        thread = threading.Thread(target=self.threadRate)
+        thread.daemon = True
+        thread.start()
+
+    #Rate Limiting function
+    def rateCount(self):
+
+        return "-----User is blocked, too many requests-----"
 
     # If they try somewhere we don't know, catch it here and send them to the right place.
     @cherrypy.expose
@@ -139,18 +146,8 @@ class MainApp(object):
         except KeyError:  # No username
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
-        userList = []
-        try:
-            self.acquireProfile(user)
-        except:
-            print("Profile has some problems")
-        for userNum in userDictionary:
-            # userList.append(userNum[0])
-            userList += userDictionary[str(userNum)]['username']
 
         template = self.env.get_template('Message.html')
-        newList = []
-        senderList = []
         myPic = DatabaseFunctions.get_user_profile(user)
         friendPic = DatabaseFunctions.get_user_profile(username)
         convo = DatabaseFunctions.get_convo(user, username)
@@ -163,15 +160,12 @@ class MainApp(object):
         except:
             print("-----No profile pic-----")
 
-        for msg in convo:
-            newList.append(msg[3])
-        for sender in convo:
-            senderList.append(sender[1])
         recipient = username
-        # messageList = messageList[0][3]
-        return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
-                               onlineUsers=userDictionary, user=user, sender=recipient)
-
+        try:
+            return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
+                                   onlineUsers=userDictionary, user=user, sender=recipient)
+        except:
+            print("-----Problems with reading message. Other user may have encryption-----")
 
     @cherrypy.expose
     def showFile(self):
@@ -245,6 +239,13 @@ class MainApp(object):
             print "-----Reporting Login-----"
             time.sleep(30)
 
+    @cherrypy.expose
+    def threadRate(self):
+        while True:
+            print "-----Rate limiting timer-----"
+            self.rateCounter.clear()
+            time.sleep(60)
+
     def reportLogin(self, username, password, location, ip, port):
         userData = urllib.urlencode(
             {'username': username, 'password': encrypt_string(username, password), 'location': location,
@@ -261,7 +262,7 @@ class MainApp(object):
         s.connect(('8.8.8.8', 80))
         ip = s.getsockname()[0]
         s.close()
-        public_ip = urllib.urlopen('http://ip.42.pl/raw').read()
+        public_ip = urllib.urlopen('http://ip.42.pl/raw').read() #Was used when testing with port forwarding
         return ip
 
     @cherrypy.expose
@@ -277,13 +278,12 @@ class MainApp(object):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/listUsers')
 
         userList = split_upi(r.read())
-
         # DatabaseFunctions.add_upi_db(userList)
         return userList
 
     @cherrypy.expose
     def pingUser(self, username, IP, port):
-        print('http://' + IP + ":" + port + '/ping?sender=' + username)
+        # print('http://' + IP + ":" + port + '/ping?sender=' + username)
         request = urllib2.Request('http://' + IP + ":" + port + '/ping?sender=' + username)
         response = urllib2.urlopen(request, timeout=0.8)
         errorCode = response.read()
@@ -291,18 +291,62 @@ class MainApp(object):
 
     @cherrypy.expose
     def ping(self, sender):
-        return "0"
+
+        ip = cherrypy.request.remote.ip
+        if ip in self.rateCounter:
+            self.rateCounter[ip] += 1
+            if self.rateCounter[ip] > 100:
+                print("-----Request rejected, currently being rate limited-----")
+                return "11"
+            else:
+                return "0"
+        else:
+            self.rateCounter[ip] = 1
+            return "0"
+
+        # try:
+        #     self.rateCounter[ip] += 1
+        #     if self.rateCounter[sender] > 100:
+        #         print("-----Request rejected, currently being rate limited-----")
+        #         return "11"
+        #     else:
+        #         return "0"
+        # except:
+        #     self.rateCounter[ip] = 0
+        #     # self.rateCounter[ip] += 1
+        #     print(self.rateCounter)
+        #     return "0"
+
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveMessage(self):
-        input_data = cherrypy.request.json
-        sender = input_data['sender']
-        receiver = input_data['destination']
-        message = input_data['message']
-        timestamp = input_data['stamp']
-        DatabaseFunctions.add_msg_db(sender, receiver, message, timestamp)
-        return "0"
+        ip = cherrypy.request.remote.ip
+        if ip in self.rateCounter:
+            self.rateCounter[ip] += 1
+            if self.rateCounter[ip] > 100:
+                print("-----Request rejected, currently being rate limited-----")
+                return "11"
+            else:
+                input_data = cherrypy.request.json
+                sender = input_data['sender']
+                receiver = input_data['destination']
+                message = input_data['message']
+                timestamp = input_data['stamp']
+                DatabaseFunctions.add_msg_db(sender, receiver, message, timestamp)
+                return "0"
+        else:
+            self.rateCounter[ip] = 1
+            input_data = cherrypy.request.json
+            sender = input_data['sender']
+            receiver = input_data['destination']
+            message = input_data['message']
+            timestamp = input_data['stamp']
+            DatabaseFunctions.add_msg_db(sender, receiver, message, timestamp)
+            return "0"
+
+
+
 
     @cherrypy.expose
     def sendMessage(self, recipient, message):
@@ -337,6 +381,7 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def getProfile(self):
+        ip = cherrypy.request.remote.ip
         input_data = cherrypy.request.json
         UPI = input_data["profile_username"]
         profile = DatabaseFunctions.get_user_profile(UPI)
@@ -344,7 +389,18 @@ class MainApp(object):
                        "position": profile[0][3], "description": profile[0][4],
                        "location": profile[0][5], "picture": profile[0][6]}
         output_dict = json.dumps(output_dict)
-        return output_dict
+        if ip in self.rateCounter:
+            self.rateCounter[ip] += 1
+            if self.rateCounter[ip] > 100:
+                print("-----Request rejected, currently being rate limited-----")
+                return "11"
+            else:
+                return output_dict
+        else:
+            self.rateCounter[ip] = 1
+            return output_dict
+
+
 
     @cherrypy.expose
     def acquireProfile(self, userProfile):
@@ -352,23 +408,24 @@ class MainApp(object):
         destinationIp = DatabaseFunctions.get_ip(userProfile)
         destinationPort = DatabaseFunctions.get_port(userProfile)
         try:
-            pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-            if (pingCode == '0'):
-                url = 'http://' + destinationIp + ":" + destinationPort + '/getProfile?'
-                data = json.dumps(postdata)
-                req = urllib2.Request(url, data=data, headers={'content-type': 'application/json'})
-                response = urllib2.urlopen(req, timeout=1)
-                response = response.read()
-                profileDict = json.loads(response)
+            # pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
+            # if (pingCode == '0'):
+            url = 'http://' + destinationIp + ":" + destinationPort + '/getProfile?'
+            data = json.dumps(postdata)
+            req = urllib2.Request(url, data=data, headers={'content-type': 'application/json'})
+            response = urllib2.urlopen(req, timeout=1)
+            response = response.read()
+            profileDict = json.loads(response)
 
-                name = profileDict.get('fullname', 'Not Available')
-                position = profileDict.get('position', 'Not Available')
-                description = profileDict.get('description', 'Not Available')
-                location = profileDict.get('location', 'Not Available')
-                picture = profileDict.get('picture', 'Not Available')
-                timestamp = profileDict.get('lastUpdated', 'Not Available')
-                DatabaseFunctions.add_profile(userProfile, name, position, description, location, picture, timestamp)
+            name = profileDict.get('fullname', 'Not Available')
+            position = profileDict.get('position', 'Not Available')
+            description = profileDict.get('description', 'Not Available')
+            location = profileDict.get('location', 'Not Available')
+            picture = profileDict.get('picture', 'Not Available')
+            timestamp = profileDict.get('lastUpdated', 'Not Available')
+            DatabaseFunctions.add_profile(userProfile, name, position, description, location, picture, timestamp)
         except:
+            print("-----Something went wrong trying to acquire profile-----")
             pass
 
     @cherrypy.expose
@@ -377,9 +434,17 @@ class MainApp(object):
             template = self.env.get_template('Profile.html')
             error = ""
             try:
-                self.acquireProfile(userProfile)
+                destinationIp = DatabaseFunctions.get_ip(userProfile)
+                destinationPort = DatabaseFunctions.get_port(userProfile)
+                try:
+                    pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
+                    if (pingCode == '0'):
+                        self.acquireProfile(userProfile)
+                except:
+                    print("-----Something went wrong trying to acquire profile-----")
             except:
                 error += "user does not exist"
+                print("-----user does not exist-----")
             userList = self.listUsers()
 
             try:
@@ -446,15 +511,33 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveFile(self):
+        ip = cherrypy.request.remote.ip
         fileData = cherrypy.request.json
-        DatabaseFunctions.add_file_db(fileData['sender'], fileData['destination'],
-                                      fileData['filename'],
-                                      fileData['stamp'],
-                                      fileData['content_type'])
-        if self.saveFile(fileData['file'], fileData['filename']):
-            return "0"
+        if ip in self.rateCounter:
+            self.rateCounter[ip] += 1
+            if self.rateCounter[ip] > 100:
+                print("-----Request rejected, currently being rate limited-----")
+                return "11"
+            else:
+                DatabaseFunctions.add_file_db(fileData['sender'], fileData['destination'],
+                                              fileData['filename'],
+                                              fileData['stamp'],
+                                              fileData['content_type'])
+                if self.saveFile(fileData['file'], fileData['filename']):
+                    return "0"
+                else:
+                    return "12"
         else:
-            return "12"
+            self.rateCounter[ip] = 1
+            DatabaseFunctions.add_file_db(fileData['sender'], fileData['destination'],
+                                          fileData['filename'],
+                                          fileData['stamp'],
+                                          fileData['content_type'])
+            if self.saveFile(fileData['file'], fileData['filename']):
+                return "0"
+            else:
+                return "12"
+
 
     @cherrypy.expose
     def saveFile(self, file, fileName):

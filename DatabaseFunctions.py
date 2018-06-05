@@ -82,56 +82,18 @@ def add_online_db(userDictionary):
 
     for user in userDictionary:
         cursor.execute(
-            "UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ?, isOnline = '1' WHERE UPI == ?", (
+            "UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? WHERE UPI == ?", (
                 user['location'], user['ip'], user['port'],
                 float(user['lastLogin']), user['username']))
-    # users = cursor.fetchone()[0]
     connection.commit()
     cursor.close()
-    # return users
-
-
-# def add_online_db(userDictionary):
-#     # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
-#     connection = sqlite3.connect("LiChat.db")
-#     cursor = connection.cursor()
-#     userDictionary = userDictionary.values()
-#     # tupleData = (location, IP, port, timestamp, UPI)
-#     for user in userDictionary:
-#         cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ?, isOnline = '1' WHERE UPI == ?", (
-#         user['location'], user['ip'], user['port'],
-#         time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(user['lastLogin']))), user['username']))
-#     connection.commit()
-#     cursor.close()
-
-
-# def set_online(user):
-#     connection = sqlite3.connect("LiChat.db")
-#     cursor = connection.cursor()
-#     if (user == ):
-#         cursor.execute("UPDATE UserInfo SET isOnline = '1'")
-#     else:
-#         cursor.execute("UPDATE UserInfo SET isOnline = '0'")
-#     connection.commit()
-#     cursor.close()
-#
-def get_online():
-    connection = sqlite3.connect("LiChat.db")
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT UPI FROM UserInfo WHERE isOnline = '1'")
 
 
 def add_msg_db(sender, receiver, message, timestamp):
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-    # cursor.execute(
-    #     "CREATE TABLE IF NOT EXISTS Messages(Sender TEXT, Receiver TEXT, Message TEXT, Timestamp INTEGER)")
     tupleData = (sender, receiver, message, timestamp)
-    # try:
     cursor.execute("INSERT or IGNORE INTO Messages (Sender, Receiver, Message, Timestamp) VALUES (?,?,?,?)", tupleData)
-    # except:
-    #     pass
     connection.commit()
     cursor.close()
 
@@ -144,7 +106,7 @@ def get_msg(username):
     msg = cursor.fetchall()
     returnMsg = []
     for row in msg:
-        if (row[1] == username or row[2] == username):
+        if row[1] == username or row[2] == username:
             returnMsg.append(row)
     connection.commit()
     cursor.close()
