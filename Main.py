@@ -68,10 +68,10 @@ class MainApp(object):
         thread.daemon = True
         thread.start()
 
-    #Rate Limiting function
+    # Rate Limiting function
     def rateCount(self):
-
-        return "-----User is blocked, too many requests-----"
+        print("-----User is blocked, too many requests-----")
+        return "11"
 
     # If they try somewhere we don't know, catch it here and send them to the right place.
     @cherrypy.expose
@@ -264,7 +264,7 @@ class MainApp(object):
         ip = s.getsockname()[0]
         s.close()
         # public_ip was used when testing outside of the university because the code above did not get the right IP
-        public_ip = urllib.urlopen('http://ip.42.pl/raw').read() # Was used when testing with port forwarding
+        public_ip = urllib.urlopen('http://ip.42.pl/raw').read()  # Was used when testing with port forwarding
         return ip
 
     # This function sends a request to the login server and returns an error code to determine if the user
@@ -295,45 +295,35 @@ class MainApp(object):
         errorCode = response.read()
         return errorCode[0]
 
-    # This function 
+    # This function is called when another user tries to ping the current user
     @cherrypy.expose
     def ping(self, sender):
         ip = cherrypy.request.remote.ip
+        # The rate is to be limited to 100 counts per ip
         if ip in self.rateCounter:
             self.rateCounter[ip] += 1
             if self.rateCounter[ip] > 100:
-                print("-----Request rejected, currently being rate limited-----")
-                return "11"
+                # The function to return the rate limit error code
+                return self.rateCount()
             else:
                 return "0"
         else:
             self.rateCounter[ip] = 1
             return "0"
 
-        # try:
-        #     self.rateCounter[ip] += 1
-        #     if self.rateCounter[sender] > 100:
-        #         print("-----Request rejected, currently being rate limited-----")
-        #         return "11"
-        #     else:
-        #         return "0"
-        # except:
-        #     self.rateCounter[ip] = 0
-        #     # self.rateCounter[ip] += 1
-        #     print(self.rateCounter)
-        #     return "0"
-
-
+    # This function is called when another user wishes to send the current user a message
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         ip = cherrypy.request.remote.ip
+        # The rate is to be limited to 100 counts per ip
         if ip in self.rateCounter:
             self.rateCounter[ip] += 1
             if self.rateCounter[ip] > 100:
-                print("-----Request rejected, currently being rate limited-----")
-                return "11"
+                # The function to return the rate limit error code
+                return self.rateCount()
             else:
+                # Organising data then calling a function to add everything to the database
                 input_data = cherrypy.request.json
                 sender = input_data['sender']
                 receiver = input_data['destination']
@@ -351,20 +341,18 @@ class MainApp(object):
             DatabaseFunctions.add_msg_db(sender, receiver, message, timestamp)
             return "0"
 
-
-
-
+    # This is the function that sends the message. It would first try to see whether the recipient is online,
+    # then send the message.
     @cherrypy.expose
     def sendMessage(self, recipient, message):
-        """This is the function that sends the message.
-        It would first try to see whether the recipient
-        is online, then send the message.
-        """
         try:
+            # Finds the time, ip and port
             currentTime = float(time.time())
             destinationIp = DatabaseFunctions.get_ip(recipient)
             destinationPort = DatabaseFunctions.get_port(recipient)
             try:
+                # Pings the other user, and if it returns 0 then get the information, otherwise print an error
+                # to state that the message is unsuccesfully sent
                 pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
                 messageDict = {"sender": cherrypy.session['username'], "message": message, "destination": recipient,
                                "stamp": currentTime}
@@ -372,57 +360,61 @@ class MainApp(object):
             except:
                 print("------Message failed to send, unable to ping recipient------")
                 raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-            if (pingCode == '0'):
+            # If the user can be pinged, send a request to send the message to the other user
+            if pingCode == '0':
                 url = 'http://' + destinationIp + ":" + destinationPort + '/receiveMessage'
                 req = urllib2.Request(url, data=messageDict, headers={'content-type': 'application/json'})
                 response = urllib2.urlopen(req)
-                if (response.read() == '0'):
+                # The other user's response is then checked
+                if response.read() == '0':
                     DatabaseFunctions.add_msg_db(cherrypy.session['username'], recipient, message, currentTime)
                     print("-----Message successfully sent-----")
                     raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-        except KeyError:  # No username
+                else:
+                    print("------Message failed to send, no response code from recipient------")
+                    raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
+        except KeyError:  # No user is logged on
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
 
+    # This function returns the profile for the current user to the other user trying to make a request
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def getProfile(self):
         ip = cherrypy.request.remote.ip
         input_data = cherrypy.request.json
         UPI = input_data["profile_username"]
+        # The data is fetched from the database, then organised
         profile = DatabaseFunctions.get_user_profile(UPI)
         output_dict = {"lastUpdated": profile[0][7], "fullname": profile[0][2],
                        "position": profile[0][3], "description": profile[0][4],
                        "location": profile[0][5], "picture": profile[0][6]}
         output_dict = json.dumps(output_dict)
+        # Rate limiting below, see above for more thorough explaination
         if ip in self.rateCounter:
             self.rateCounter[ip] += 1
             if self.rateCounter[ip] > 100:
-                print("-----Request rejected, currently being rate limited-----")
-                return "11"
+                return self.rateCount()
             else:
                 return output_dict
         else:
             self.rateCounter[ip] = 1
             return output_dict
 
-
-
+    # This function acquires the desired user's profile and adds it to the database
     @cherrypy.expose
     def acquireProfile(self, userProfile):
         postdata = {'profile_username': userProfile, 'sender': cherrypy.session['username']}
         destinationIp = DatabaseFunctions.get_ip(userProfile)
         destinationPort = DatabaseFunctions.get_port(userProfile)
         try:
-            # pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-            # if (pingCode == '0'):
             url = 'http://' + destinationIp + ":" + destinationPort + '/getProfile?'
             data = json.dumps(postdata)
             req = urllib2.Request(url, data=data, headers={'content-type': 'application/json'})
             response = urllib2.urlopen(req, timeout=1)
             response = response.read()
             profileDict = json.loads(response)
-
+            # Organising the data that has been acquired
             name = profileDict.get('fullname', 'Not Available')
             position = profileDict.get('position', 'Not Available')
             description = profileDict.get('description', 'Not Available')
@@ -434,28 +426,31 @@ class MainApp(object):
             print("-----Something went wrong trying to acquire profile-----")
             pass
 
+    # This function passes in the user profile and passes on information to HTML to render the profile page
     @cherrypy.expose
     def requestProfile(self, userProfile):
         try:
+            # Initialises the template
             template = self.env.get_template('Profile.html')
             error = ""
             try:
+                # Acquires the user's details
                 destinationIp = DatabaseFunctions.get_ip(userProfile)
                 destinationPort = DatabaseFunctions.get_port(userProfile)
                 try:
                     pingCode = self.pingUser(cherrypy.session['username'], destinationIp, destinationPort)
-                    if (pingCode == '0'):
+                    if pingCode == '0':
                         self.acquireProfile(userProfile)
                 except:
                     print("-----Something went wrong trying to acquire profile-----")
             except:
                 error += "user does not exist"
-                print("-----user does not exist-----")
+                print("-----User does not exist-----")
             userList = self.listUsers()
-
             try:
                 profile = DatabaseFunctions.get_user_profile(userProfile)
             except:
+                # Returns the profile for the current user that is logged on
                 error += "No profile available"
                 userProfile = DatabaseFunctions.get_current_user()
                 userProfile = userProfile[0][1]
@@ -465,34 +460,35 @@ class MainApp(object):
             except:
                 updateTime = "Time for last updated is not available"
             try:
-                return template.render(user=userProfile, userList=userList, profile=profile, time=updateTime, error=error)
+                # Renders the page to HTML
+                return template.render(user=userProfile, userList=userList, profile=profile, time=updateTime,
+                                       error=error)
             except:
                 raise cherrypy.HTTPRedirect('/')
-        except KeyError:  # No username
+        except KeyError:  # No user is logged on
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
 
+    # This function returns HTML to give the user the ability to make changes to their profile
     @cherrypy.expose
     def editProfile(self):
         try:
-            currentUser = DatabaseFunctions.get_current_user()
-            # currentUser = currentUser[0][1]
             currentUser = cherrypy.session['username']
             profile = DatabaseFunctions.get_user_profile(currentUser)
+            # The data acquired from the data base is organised
             UPI = profile[0][1]
             name = profile[0][2]
             position = profile[0][3]
             description = profile[0][4]
             location = profile[0][5]
             picture = profile[0][6]
-            # timestamp = time.time()
-
             Page = UPI + " this is your profile! <br/>"
-            Page += '<img src=' + picture + ' alt="Kennys profile" style = "max-width: 500px; max-height: 500px">'
+            Page += '<img src=' + picture + ' alt="Profile picture" style = "max-width: 500px; max-height: 500px">'
             Page += "<br/> " + "Full Name: " + name + " <br/>"
             Page += "Position " + position + " <br/>"
             Page += "Full Description: " + description + " <br/>"
             Page += "Location: " + location + " <br/>"
+            # All the input boxes have been made required to be filled in
             Page += '<form accept-charset="utf-8" action="/saveProfile" method="post" enctype="multipart/form-data">'
             Page += 'Full Name: <input type="text" size="100" name = "name" placeholder="Fullname" required="" autofocus="" "/><br/>'
             Page += 'Position: <input type="text" size="100" name = "position" placeholder="Position" required="" autofocus="""/><br/>'
@@ -505,7 +501,7 @@ class MainApp(object):
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
 
-
+    # This function is called too save the profile information into the database
     @cherrypy.expose
     def saveProfile(self, name, position, description, location, picture):
         timestamp = float(time.time())
@@ -513,22 +509,24 @@ class MainApp(object):
                                       timestamp)
         raise cherrypy.HTTPRedirect('/')
 
-
+    # This function is called when the user is to receive a file from another user
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveFile(self):
         ip = cherrypy.request.remote.ip
         fileData = cherrypy.request.json
+        # Rate limiting, see above for a more detailed explanation
         if ip in self.rateCounter:
             self.rateCounter[ip] += 1
             if self.rateCounter[ip] > 100:
-                print("-----Request rejected, currently being rate limited-----")
-                return "11"
+                return self.rateCount()
             else:
+                # The file details are added to the database
                 DatabaseFunctions.add_file_db(fileData['sender'], fileData['destination'],
                                               fileData['filename'],
                                               fileData['stamp'],
                                               fileData['content_type'])
+                # The actual file is then saved by calling the saveFile function
                 if self.saveFile(fileData['file'], fileData['filename']):
                     return "0"
                 else:
@@ -544,9 +542,11 @@ class MainApp(object):
             else:
                 return "12"
 
-
+    # This function saves the file being passed into it and returns true or false depending on if the file
+    # is less than 5Mb or not
     @cherrypy.expose
     def saveFile(self, file, fileName):
+        # The file is first decoded then saved
         fileInput = base64.b64decode(file)
         f = open("Downloads/" + fileName, "wb+")
         f.write(fileInput)
@@ -555,20 +555,22 @@ class MainApp(object):
             return False
         return True
 
+    # This function is called when the user wishes to send a file to another user
     @cherrypy.expose
     def sendFile(self, fileData, recipient):
         try:
             sender = cherrypy.session['username']
             destination = recipient
+            # The file is encrypted then the file type is found
             file = base64.encodestring(fileData.file.read())
             filename = str(fileData.filename)
             content = mimetypes.guess_type(filename, strict=True)
             content_type = content[0]
             stamp = float(time.time())
+            # The file is then saved and if it is valid, a request will be made to the other user to send the file
             if self.saveFile(file, filename):
                 destinationIp = DatabaseFunctions.get_ip(recipient)
                 destinationPort = DatabaseFunctions.get_port(recipient)
-
                 fileDict = {'sender': sender, 'destination': str(destination), 'file': file,
                             'filename': filename, 'content_type': content_type, 'stamp': stamp}
                 fileDict = json.dumps(fileDict)
@@ -581,20 +583,22 @@ class MainApp(object):
                         print("-----File successfully sent-----")
                         raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
                 except:
+                    # If there is no response from the other user, the following error message will display
                     print("------File failed to send------")
                     raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
             else:
                 print("-------File exceeds 5Mb-------")
                 raise cherrypy.HTTPRedirect('/showMessages?username={}'.format(recipient))
-        except KeyError:  # No username
+        except KeyError:  # No user is logged in
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
 
-
+    # This function is called to automatically log off the users when the server shuts down
     @cherrypy.expose
     def shutdown(self):
         Details = DatabaseFunctions.get_current_user()
         DatabaseFunctions.drop_current()
+        # A loop is used to log off each user active in the system
         for user in Details:
             self.logoff(user[1], user[2])
         print("===================================")
@@ -612,7 +616,7 @@ def runMainApp():
                             'server.socket_port': listen_port,
                             'engine.autoreload.on': True,
                             })
-
+    # The configuration for the static folder
     cherrypy.quickstart(mainObject, config={
         '/static': {
             'tools.staticdir.root': os.path.abspath(os.getcwd()),
@@ -620,7 +624,6 @@ def runMainApp():
             'tools.staticdir.dir': './static'
         }
     })
-
 
     print "========================="
     print "University of Auckland"
