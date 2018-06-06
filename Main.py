@@ -597,10 +597,10 @@ class MainApp(object):
     @cherrypy.expose
     def shutdown(self):
         Details = DatabaseFunctions.get_current_user()
-        DatabaseFunctions.drop_current()
         # A loop is used to log off each user active in the system
         for user in Details:
             self.logoff(user[1], user[2])
+        DatabaseFunctions.drop_current()
         print("===================================")
         print("===SHUTTING DOWN AND LOGGING OFF===")
         print("===================================")

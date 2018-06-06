@@ -1,4 +1,5 @@
 window.onload = scrollSet();
+// This function scrolls to the bottom when the page is loaded
 function scrollSet()
 {
 	var objDiv = document.getElementById("chatlog");
@@ -10,12 +11,10 @@ function setupRefresh()
 {
 	setInterval(refreshBlock,1000);
 	setInterval(refreshOnline,15000);
-	// setInterval(scrollSet, 100);
 }
-
+// This function refreshes parts of the page while keeping the scroll at the current position
 function refreshBlock()
 {
-	//$('#chatlog').load("showMessages");
     var user = $("#sendButton").val();
 	$.get("./showMessages",{username: user}, function(data)
 	{
