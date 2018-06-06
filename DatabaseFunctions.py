@@ -1,6 +1,17 @@
 import sqlite3
-import time
 
+# This function initialises the database, creating all the necessary tables
+def create_database():
+    connection = sqlite3.connect("LiChat.db")
+    cursor = connection.cursor()
+    try:
+        cursor.execute("CREATE TABLE IF NOT EXISTS Messages(MessageID INTEGER PRIMARY KEY, Sender TEXT, Receiver TEXT, Message TEXT, Timestamp INTEGER, content_type TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS Profiles(ProfileID INTEGER PRIMARY KEY, UPI TEXT UNIQUE, fullname TEXT,position TEXT, description TEXT, location TEXT, picture TEXT, lastUpdated TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT UNIQUE, Location TEXT, IP TEXT, PORT TEXT, LoginTime TEXT)")
+    except:
+        print("Error initialising database")
+    connection.commit()
+    cursor.close()
 
 def init_current_user():
     connection = sqlite3.connect("LiChat.db")
@@ -57,20 +68,10 @@ def add_upi_db(userList):
     cursor = connection.cursor()
 
     for upi in userList:
-        cursor.execute("INSERT INTO UserInfo (UPI) VALUES (?)", (upi,))
+        cursor.execute("INSERT or REPLACE INTO UserInfo (UPI) VALUES (?)", (upi,))
         connection.commit()
     cursor.close()
 
-
-# def add_online_db(UPI, location, IP, port, timestamp):
-#     # cursor.execute("CREATE TABLE IF NOT EXISTS UserInfo(UPI TEXT, Location INTEGER, IP INTEGER, PORT INTEGER, LoginTime INTEGER)")
-#     connection = sqlite3.connect("LiChat.db")
-#     cursor = connection.cursor()
-#
-#     tupleData = (location, IP, port, timestamp, UPI)
-#     cursor.execute("UPDATE UserInfo SET Location = ?, IP = ?, PORT = ?, LoginTime = ? where UPI == ?", tupleData)
-#     connection.commit()
-#     cursor.close()
 
 
 def add_online_db(userDictionary):
