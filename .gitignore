@@ -1,4 +1,5 @@
 .idea/
 Other.py
 *.pyc
-Downloads/
+*.db.sqbpro
+*.docx
