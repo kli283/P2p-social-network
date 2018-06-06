@@ -442,7 +442,7 @@ class MainApp(object):
                     if pingCode == '0':
                         self.acquireProfile(userProfile)
                 except:
-                    print("-----Something went wrong trying to acquire profile-----")
+                    print("-----Something went wrong trying to acquire profile, user may not be online-----")
             except:
                 error += "user does not exist"
                 print("-----User does not exist-----")
