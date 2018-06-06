@@ -43,18 +43,21 @@ class MainApp(object):
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on': 'True',
                   }
-
+    # Initialises thread for rate limiting and auto login
     enableThread = {}
     rateCounter = {}
-
-
+    # Initialises the database
+    DatabaseFunctions.create_database()
+    # Initialises the current user logged on, for multiple users
     DatabaseFunctions.init_current_user()
 
     # Gets current directory
     CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Initialises Jinja2 environment
     env = Environment(
         loader=FileSystemLoader(CUR_DIR),
         trim_blocks=True,
+        # This line will sanitise unwanted scripts with Jinja2
         autoescape=select_autoescape(['html'])
     )
 
@@ -78,52 +81,50 @@ class MainApp(object):
         cherrypy.response.status = 404
         return Page
 
+    # This is the function that initialises the page of the user when navigating to the home page
     @cherrypy.expose
     def index(self):
+        # Initialises the current user if they have not been already and and initialises the templates for Jinja2
         DatabaseFunctions.init_current_user()
         template = self.env.get_template('index.html')
         loginTemplate = self.env.get_template('login.html')
 
         try:
-            # Page += "Hello " + cherrypy.session['username'] + "!<br/>"
-            # Page += "Here is some bonus text because you've logged in!" + "!<br/>"
-            # Page += "Click here to <a href='logout'>logout</a>" + "!<br/>"
-            # Page += "Click here to view list of users <a href='showUsers'>BAM</a>." + "!<br/>"
-            # Page += "See who's <a href='showOnline'>ONLINE</a>." + "!<br/>"
-            # Page += cherrypy.session['username'] + " is Username" + "!<br/>"
-            # Page += cherrypy.session['password'] + " is Password" + "!<br/>"
-            # Page += "Click here to go to <a href='showMessages'>messages</a>." + "!<br/>"
-            # Page += "Click here to go to <a href='showProfiles'>profiles</a>." + "!<br/>"
-            # Page += "Click here to edit your <a href='editProfile'>profile</a>." + "!<br/><br/>"
-            # Page += "Click here to send a <a href='showFile'>file</a>." + "!<br/><br/>"
+            # The rest of this function passes information of the user and other details to be passed into HTML
             userList = self.listUsers()
             userDictionary = self.showOnline()
             onlineUsers = []
-            # user = DatabaseFunctions.get_current_user()
-            # user = user[0][1]
-
             user = cherrypy.session['username']
             try:
                 profileDetails = DatabaseFunctions.get_user_profile(user)
+                # A check is done in case it is the first time a user logs on, if it is then the profile will be
+                # set to a default value so that something is able to be passed into HTML
+                if len(profileDetails) == 0:
+                    DatabaseFunctions.add_profile(cherrypy.session['username'], "none", "none", "none", "none", "none",
+                                                  float(time.time()))
+                    profileDetails = DatabaseFunctions.get_user_profile(cherrypy.session['username'])
                 try:
                     updateTime = time.strftime("%d-%m-%Y %I:%M %p", time.localtime(float(profileDetails[0][7])))
                 except:
                     updateTime = "Time for last updated is not available"
-
             except:
-                profileDetails = "No profile available"
+                DatabaseFunctions.add_profile(cherrypy.session['username'], "none", "none", "none", "none", "none",
+                                              float(time.time()))
+                profileDetails = DatabaseFunctions.get_user_profile(cherrypy.session['username'])
             for userNum in userDictionary:
                 onlineUsers.append(userDictionary[str(userNum)]['username'])
+            # These are then rendered using Jinja2
             return template.render(user=user, userList=userList, profile=profileDetails, time=updateTime)
-
         except KeyError:  # No username
             print("-----User is not logged on-----")
             return loginTemplate.render()
 
+    # This function returns the login page
     @cherrypy.expose
     def login(self):
-        return file("login.html")  # urllib.urlopen("index.html").read()
+        return file("login.html")  # OR urllib.urlopen("index.html").read()
 
+    # This function handles the return value for logging off to see whether or not it is successful
     @cherrypy.expose
     def logout(self):
         # Page = '<form action="/signin" method="post" enctype="multipart/form-data">'
@@ -134,21 +135,23 @@ class MainApp(object):
         else:
             raise cherrypy.HTTPRedirect('/')
 
+    # This function gets the details for all the messages between two users and renders it to HTML
     @cherrypy.expose
     def showMessages(self, username=None):
+        # Checks for online users to prepare the values to send into HTML
         try:
             if username is None:
+                # Checks if there is an actual user logged on
                 username = cherrypy.session['username']
-            # user = DatabaseFunctions.get_current_user()
-            # user = user[0][1]
             user = cherrypy.session['username']
             userDictionary = self.showOnline()
-        except KeyError:  # No username
+        except KeyError:  # No user is logged on
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
-
+        # Initialises the template
         template = self.env.get_template('Message.html')
         myPic = DatabaseFunctions.get_user_profile(user)
+        # Fetches the profile pictures of both users from the database
         friendPic = DatabaseFunctions.get_user_profile(username)
         convo = DatabaseFunctions.get_convo(user, username)
         try:
@@ -162,74 +165,70 @@ class MainApp(object):
 
         recipient = username
         try:
+            # Renders all the details to HTML with Jinja2
             return template.render(title='Messages', messages=convo, profilePic=friendPic, otherPic=myPic,
                                    onlineUsers=userDictionary, user=user, sender=recipient)
         except:
             print("-----Problems with reading message. Other user may have encryption-----")
 
+    # This function loads HTML onto the page to give the user the ability to send files
     @cherrypy.expose
     def showFile(self):
         try:
+            # The function sendFile is called with the button press
             Page = '<form action="/sendFile" method="post" enctype="multipart/form-data">'
             Page += 'Select file: <input type="file" name="fileData" ><br/>'
             Page += 'Receiver: <input type="text" name="recipient"/><br/>'
             Page += '<input type="submit" value="Send"/></form>'
-
+            # This page will also show users that are online
             userDictionary = self.showOnline()
-
             Page += "Here is a list of people online from COMPSYS302!<br/>"
             Page += "Number of users online: " + str(len(userDictionary)) + " <br/><br/>"
             for userNum in userDictionary:
                 Page += userDictionary[str(userNum)]['username'] + " <br/>"
             return Page
-        except KeyError:  # No username
+        except KeyError:  # No user is logged on
             print("-----User is not logged on-----")
             raise cherrypy.HTTPRedirect("/")
 
+    # This function sends a request to the login server and then returns the json of everyone currently logged
+    # onto the server
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def showOnline(self):
         userData = urllib.urlencode(
             {'username': cherrypy.session['username'], 'password': cherrypy.session['password']})
         r = urllib.urlopen('http://cs302.pythonanywhere.com/getList?&enc=0&json=1', userData)
-
         userDictionary = r.read()
         userDictionary = json.loads(userDictionary)
-
+        # The details are also stored onto the database
         DatabaseFunctions.add_online_db(userDictionary)
         return userDictionary
 
-
-    @cherrypy.expose
-    def sum(self, a=0, b=0):  # All inputs are strings by default
-        output = int(a) + int(b)
-        return str(output)
-
-    # LOGGING IN AND OUT
+    # This function passes in the username password and location to then check whether the user
+    # successfully logs in or not
     @cherrypy.expose
     def signin(self, username, password, location):
-        # TODO CHECK IF PUBLIC IP DIFFERS FROM LOCAL
+        # The ip and port are acquired first
         local_ip = self.getIp()
-
-        port = '10001'
-        # DatabaseFunctions.init_current_user()
+        port = listen_port
         DatabaseFunctions.add_current_user(username, encrypt_string(username, password), location)
-
-        Details = DatabaseFunctions.get_current_user()
-        """Check their name and password and send them either to the main page, or back to the main login screen."""
+        # Check their name and password and send them either to the main page, or back to the main login screen
         error = self.reportLogin(username, password, location, local_ip, port)
         if error == 0:
             cherrypy.session['username'] = username
             cherrypy.session['password'] = encrypt_string(username, password)
+            # A thread is started to make sure that the login is reported regularly to the login server
             thread = threading.Thread(target=self.threadLogin, args=(username, password, location))
             self.enableThread[username] = True
-            # self.enableThread = True
             thread.daemon = True
             thread.start()
             raise cherrypy.HTTPRedirect('/')
         else:
+            print("------Error logging in------")
             raise cherrypy.HTTPRedirect('/login')
 
+    # This is the threading function that constantly calls the reportLogin function every 30 seconds
     @cherrypy.expose
     def threadLogin(self, username, password, location):
         ip = self.getIp()
@@ -239,6 +238,7 @@ class MainApp(object):
             print "-----Reporting Login-----"
             time.sleep(30)
 
+    # This is the threading function that is used as a 1 minute timer for rate limiting
     @cherrypy.expose
     def threadRate(self):
         while True:
@@ -246,25 +246,29 @@ class MainApp(object):
             self.rateCounter.clear()
             time.sleep(60)
 
+    # This function sends a request to the login server and returns an error code to determine whether the login
+    # is a success or not
     def reportLogin(self, username, password, location, ip, port):
         userData = urllib.urlencode(
             {'username': username, 'password': encrypt_string(username, password), 'location': location,
              'ip': ip, 'port': port})
         r = urllib.urlopen('http://cs302.pythonanywhere.com/report', userData)
-
         returnCode = int(r.read()[0:1])
         return returnCode
 
+    # This function acquires the IP address of the current user
     def getIp(self):
-        """Acquires the current ip address"""
         s = socket.socket(socket.AF_INET,
                           socket.SOCK_DGRAM)  # Code from https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
         s.connect(('8.8.8.8', 80))
         ip = s.getsockname()[0]
         s.close()
-        public_ip = urllib.urlopen('http://ip.42.pl/raw').read() #Was used when testing with port forwarding
+        # public_ip was used when testing outside of the university because the code above did not get the right IP
+        public_ip = urllib.urlopen('http://ip.42.pl/raw').read() # Was used when testing with port forwarding
         return ip
 
+    # This function sends a request to the login server and returns an error code to determine if the user
+    # has successfully logged off or not
     @cherrypy.expose
     def logoff(self, username, password):
         userData = urllib.urlencode({'username': username, 'password': password})
@@ -274,24 +278,26 @@ class MainApp(object):
         returnCode = int(r.read()[0:1])
         return returnCode
 
+    # This function sends a request to the login server to read all the users on the server
     def listUsers(self):
         r = urllib.urlopen('http://cs302.pythonanywhere.com/listUsers')
-
         userList = split_upi(r.read())
-        # DatabaseFunctions.add_upi_db(userList)
+        # The values are also added onto the database
+        DatabaseFunctions.add_upi_db(userList)
         return userList
 
+    # This function is called when the user needs to ping another user and returns the error code of the other user
+    # being pinged
     @cherrypy.expose
     def pingUser(self, username, IP, port):
-        # print('http://' + IP + ":" + port + '/ping?sender=' + username)
         request = urllib2.Request('http://' + IP + ":" + port + '/ping?sender=' + username)
         response = urllib2.urlopen(request, timeout=0.8)
         errorCode = response.read()
         return errorCode[0]
 
+    # This function 
     @cherrypy.expose
     def ping(self, sender):
-
         ip = cherrypy.request.remote.ip
         if ip in self.rateCounter:
             self.rateCounter[ip] += 1

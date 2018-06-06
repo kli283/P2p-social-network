@@ -68,7 +68,7 @@ def add_upi_db(userList):
     cursor = connection.cursor()
 
     for upi in userList:
-        cursor.execute("INSERT or REPLACE INTO UserInfo (UPI) VALUES (?)", (upi,))
+        cursor.execute("INSERT OR REPLACE INTO UserInfo (UPI) VALUES (?)", (upi,))
         connection.commit()
     cursor.close()
 
@@ -146,11 +146,16 @@ def get_user_profile(UPI):
 def get_ip(UPI):
     connection = sqlite3.connect("LiChat.db")
     cursor = connection.cursor()
-    cursor.execute("SELECT IP FROM UserInfo WHERE UPI = (?)", (UPI,))
-    ip = cursor.fetchone()[0]
+    try:
+        cursor.execute("SELECT IP FROM UserInfo WHERE UPI = (?)", (UPI,))
+        ip = cursor.fetchone()[0]
+        return ip
+    except:
+        print("Error finding IP")
+        pass
     connection.commit()
     connection.close()
-    return ip
+
 
 
 def get_port(UPI):
